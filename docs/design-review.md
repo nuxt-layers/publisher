@@ -36,7 +36,7 @@ Publisher is the **enforcement point**: it asks before every action and refuses 
 | Nothing crosses sites | Files and images (`storage`, `media`) |
 | Unpublished content is never served to readers | People's names (`profile`) and site settings (`configuration`) |
 | Publishing only the exact version that was approved | How anything looks (`ui`, the application) |
-| Consent and retention for types holding personal data | |
+| Consent and retention for types holding personal data, applying the policy it is given | Consent and retention policy (`privacy`) |
 
 ## Finding: security decisions are made inside Publisher
 
@@ -53,10 +53,12 @@ Publisher asks others whether someone may act, but it also makes security decisi
 
 1. **Publisher names actions; Authorisation decides.** Publisher keeps its action names (`publisher.<type>.edit`, `.publish`, `.view-draft`, `.moderate`) and asks `decide(caller, action, { site, type, documentId })` in ADR-0012's shape. Risk levels, step-up and freshness go; a refusal's reason, such as step-up needed, comes back from `decide`.
 2. **Publisher only checks that approval matches the version.** It asks the approval port for a decision on a version's digest and publishes only on approval of that exact digest. Approver counts and self-approval rules go.
-3. **The caller is opaque.** Publisher takes `resolveCaller(event)` in ADR-0012's shape and stores only the subject identifier it is given. The tenant becomes the site, so the separate site resolver goes.
+3. **The caller is opaque.** Publisher takes `resolveCaller(event)` in ADR-0012's shape and stores only the subject identifier it is given. A **tenant** is an organisation using the platform, its security boundary; a **site** is one published website, belonging to one tenant. Publisher keeps a site identifier; the application, later Configuration, says which tenant owns each site.
 4. **Moderation leaves Publisher.** It is workflow: who may send content in, and someone accepting or rejecting it. A submission becomes an ordinary draft, created through Publisher's normal create function by the service that took it in; an editor publishes or archives it through the normal lifecycle.
 5. **Checking content on save stays.** Publisher refuses content that breaks its type's declared shape, applying `rich-text`'s rules; it cleans nothing. Every layer validates what it stores, because a screen can be bypassed.
-6. **Then composition.** With the above gone, the single call takes the database pool, `resolveCaller`, `decide`, the approval port and the document types, runs migrations, and returns the scheduled tasks. Everything else has a default.
+6. **Delete, and export instead of "save as".** Delete removes a document, every version and its history, and emits an event; the application, later `seo`, deals with redirects and links to it. Backups expire on the host's schedule; a legal hold (`policy-map`) may refuse a delete. Export hands out the document as data; file formats are the `export` library's.
+7. **Policy is received.** Consent and retention rules, history depth and storage limits come from outside (`privacy`, `policy-map`); Publisher records the facts and applies them.
+8. **Then composition**, built against fakes of every service Publisher expects, with dummy data. With the above gone, the single call takes the database pool, `resolveCaller`, `decide`, the approval port and the document types, runs migrations, and returns the scheduled tasks. Everything else has a default.
 
 ## What is removed, and its new home
 
@@ -68,8 +70,23 @@ Every removed function is still needed; each moves, none disappears.
 | Step-up and sign-in freshness (`meetsStepUp`, `CRITICAL_FRESHNESS_MINUTES`) | `authorisation`, using `authentication`'s assurance | `decide` refuses with a reason, such as step-up needed |
 | Approvers needed, and no approving one's own request (`APPROVAL_FLOOR`) | The IAM approvals process (`iam-integration`) | It approves only when its own rules are met; Publisher checks the approved digest |
 | The subject's shape: identity format, `kind`, assurance | `authentication` | `resolveCaller` gives an opaque caller |
-| The site resolver | The caller's tenant | `resolveCaller` names the tenant, which is the site |
+| The site resolver | Stays, renamed: the site comes from the request; its tenant from the application | Publisher keeps a site identifier |
+| Redirects and sitemap entries | Candidate `seo`; until then the application | Publisher emits address and delete events |
 | `receivePublisherSubmission`, `lifecycle.moderation`, the `moderate` action and permission, the moderation queue, and the `submission-received` and `submission-moderated` events | Not yet built: the catalogue's candidate `workflow-service`; until then, the application's own form handling | The form handler checks the sender and filters abuse, then creates a draft as a service caller; an editor publishes or archives it |
+
+## Services Publisher expects
+
+Built first as fakes in Publisher's tests; each becomes a requirement on its owner.
+
+| Service | Publisher asks | Owner |
+|---|---|---|
+| Caller | Who is acting, and on which site | `authentication`, the application |
+| Decide | May this caller do this action on this document? Yes, no, or step-up needed | `authorisation` |
+| Approval | Is this exact version (digest) approved? | `workflow` |
+| Policy | Retention, history depth and storage limits; is a delete held? | `privacy`, `policy-map` |
+| Tasks | Run maintenance and the event relay on time | `scheduler` |
+| Events | Take published events | `events-queue` |
+| Assets | Each image's address | `media` |
 
 ## Depends on
 
@@ -89,6 +106,6 @@ Every removed function is still needed; each moves, none disappears.
 
 ## Decisions needed
 
-1. Composition before IAM offers `resolveCaller` and `decide`: wait, or have Publisher take `getAuthenticatedPrincipal` and `authorise` through a small adapter until it does.
-2. Document actions not built today: **duplicate** ("save as") and **delete**. Today a document is only archived, or erased with a person's data. Add both, and should delete be limited to documents never published?
-3. What fills the approval port for documents: the application for now, or `workflow-service`.
+1. Decided: Publisher is built against fakes of `resolveCaller` and `decide`; IAM is revisited later.
+2. Decided: delete is added (all versions and history); "save as" becomes export.
+3. Decided: build against fakes; Publisher's needs become requirements on `workflow`, `authorisation` and the others. Development notes for other layers go in their own plans when revisited.
