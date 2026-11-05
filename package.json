@@ -32,7 +32,7 @@
     "dev": "nuxt dev playground"
   },
   "dependencies": {
-    "@nuxt-layers/rich-text": "github:nuxt-layers/rich-text#v2.0.0",
+    "@nuxt-layers/rich-text": "github:nuxt-layers/rich-text#master",
     "zod": "^4.6.5"
   },
   "peerDependencies": {

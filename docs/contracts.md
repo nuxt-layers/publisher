@@ -120,7 +120,7 @@ Every save, restore and import is a new version, kept with who saved it, when, a
 
 ## 6. Rich text
 
-Formatted fields use the platform's one format, `@nuxt-layers/rich-text` (ADR-0011), pinned at `v2.0.0`. Every other string is plain and never read as rich text.
+Formatted fields use the platform's one format, `@nuxt-layers/rich-text` (ADR-0011), following its `master`. Every other string is plain and never read as rich text.
 
 ### 6.1 Profiles
 
