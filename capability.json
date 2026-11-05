@@ -16,6 +16,7 @@
     { "capability": "Clock", "contractVersion": "1", "optional": true },
     { "capability": "Events", "contractVersion": "1", "optional": true },
     { "capability": "AssetResolver", "contractVersion": "1", "optional": true },
-    { "capability": "TitleTemplate", "contractVersion": "1", "optional": true }
+    { "capability": "TitleTemplate", "contractVersion": "1", "optional": true },
+    { "capability": "Policy", "contractVersion": "1", "optional": true }
   ]
 }

@@ -1,6 +1,6 @@
 # Publisher Contract (version 1)
 
-> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 6 to 8 change it: delete and reading addresses arrive, and composition becomes one call. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 7 and 8 change it: composition becomes one call, and the contract stands alone. Each step updates this document.
 
 `@nuxt-layers/publisher/contracts` is the only supported import path for this capability's types and pure helpers. It imports nothing but `zod`: no Nuxt, Vue, h3, server code, driver or other `@nuxt-layers/*` package.
 
@@ -119,6 +119,10 @@ For types with `lifecycle.scheduling`, `publish` may carry `publishAt` (in the f
 
 Every save, restore and import is a new version, kept with who saved it, when, and the version it restored. `listPublisherHistory` lists them newest first; `getPublisherDocument({ version })` reads one; `restore` makes an earlier one the newest. Versions are kept for as long as the document, except superseded versions of personal-data types (§9) and erased documents.
 
+### 5.6 Delete
+
+`deletePublisherDocument({ subject, documentId, expectedVersion, correlationId })` removes a document with every version, its history, its links and the redirects to it, in one transaction, and writes `publisher.document-deleted` with the number of versions. It needs `delete` and the newest version as `expectedVersion` (`conflict`, `version-stale` otherwise). While the policy port (§11) holds the document, such as under a legal hold, it is refused (`conflict`, `held`); without a policy port nothing is held. Links to it from other documents render as text afterwards. Backups are the host's and expire on its schedule.
+
 ## 6. Rich text
 
 Formatted fields use the platform's one format, `@nuxt-layers/rich-text` (ADR-0011), following its `master`. Every other string is plain and never read as rich text.
@@ -164,6 +168,8 @@ Every formatted field of a version is normalised (NFC, `\n` line ends) and check
 
 Publishing a version whose path differs from the published one's records a redirect from the old path to the document, and writes `publisher.address-changed`. Redirects point at the document, not at an address, so a second rename redirects every earlier address straight to the newest, never in a chain. A published document at a path wins over a redirect from it. A redirect answers only while its document is published.
 
+`getPublisherAddresses({ siteId, documentId })` answers a published document's current address and the former ones that redirect to it (`publisherAddressesSchema`), for `seo` and search, since events carry identifiers only. Server-only; an unpublished or unknown document has none.
+
 ### 7.3 Links between documents
 
 `doc:` links are stored by id, from the newest and the published version of each document, so renaming the target never breaks them. `listPublisherBacklinks({ subject, documentId })` lists every document linking to one: all of them, with titles only where the viewer holds `view-draft` on the linking document's type. `unpublish` and `archive` carry `acknowledgedLinks`, the number of linking documents the editor was shown; fewer than there are now is `conflict`, `still-linked`, so nobody unpublishes something still linked without seeing it.
@@ -205,6 +211,7 @@ Derived for each registered type (`publisherPermissions(registry)`), for the hos
 | `publisher.<type>.view-draft` | Reading drafts, history, links and administration lists of the type; previews |
 | `publisher.<type>.edit` | Creating, saving, submitting, withdrawing, reopening and restoring |
 | `publisher.<type>.publish` | Publishing, scheduling, unpublishing and archiving |
+| `publisher.<type>.delete` | Deleting a document with every version (§5.6) |
 
 ## 11. Ports
 
@@ -220,6 +227,7 @@ Derived for each registered type (`publisherPermissions(registry)`), for the hos
 | `PublisherEventSink` | For the relay | Host | Where `relayPublisherOutbox` sends events (§12) |
 | `PublisherAssetResolver` | No: images are refused without it | The host's asset store | Each `asset:` id's address, or `null` |
 | `PublisherTitleTemplate` | No: a document's title alone | Host, e.g. from Configuration's `seo.title-template` | Page and feed titles |
+| `PublisherPolicy` | No: nothing is held without it | Host (later `policy-map`) | `isHeld({ siteId, documentId, type })` → `boolean`: whether a policy such as a legal hold forbids deleting the document now. Anything but `false` refuses |
 
 Required ports fail closed: a missing one is `PublisherCompositionError`, and a failing one `unavailable`, recording nothing. There is no in-memory or file store and no default type. `checkPublisherComposition()` checks every required port and the stored types at start-up.
 
@@ -238,6 +246,7 @@ Written to the publisher's transactional outbox in the same transaction as the c
 | `publisher.document-unpublished` | `documentId`, `type`, `reasonCode` (`unpublished`, `archived`, `expired`, `erased`) |
 | `publisher.document-reopened` | `documentId`, `type` |
 | `publisher.address-changed` | `documentId`, `type`, `redirectRecorded` |
+| `publisher.document-deleted` | `documentId`, `type`, `versions` |
 | `publisher.person-erased` | `identityId`, `documents`, `versions` |
 | `publisher.content-imported` | `documents`, `versions` |
 | `publisher.retention-applied` | `versions`, when a run deleted any |
@@ -254,6 +263,8 @@ Auto-imported in the host's server code. The user is always the signed-in princi
 | `checkPublisherComposition()` | §11, §3.3. A host calls it at start-up after migrating |
 | `createPublisherDocument({ subject, type, content, correlationId })` | §5.1 |
 | `transitionPublisherDocument({ subject, documentId, request, correlationId })` | Any action of §5.1 (`publisherActionRequestSchema`) |
+| `deletePublisherDocument({ subject, documentId, expectedVersion, correlationId })` | §5.6 |
+| `getPublisherAddresses({ siteId, documentId })` | §7.2. Server-only |
 | `getPublisherDocument({ subject, documentId, version? })`, `listPublisherDocuments({ subject, type, search?, status?, limit?, offset? })`, `listPublisherHistory`, `listPublisherBacklinks` | Administration reads, under `view-draft`; anything else `forbidden` |
 | `resolvePublisherPath`, `getPublishedDocument({ path } or { documentId }, viewer?, preview?)` | §7.1, §8.4 |
 | `listPublishedDocuments`, `getPublisherFeed`, `listPublisherSitemapEntries` | §8 |
@@ -277,6 +288,7 @@ The host may switch the API off: `runtimeConfig.publisher.api.enabled: false`, o
 | `GET /admin/documents?type=…&search=…&status=…`, `POST /admin/documents` | `view-draft`; `edit` | Lists; creates (201) |
 | `GET /admin/documents/{id}?version=…` | `view-draft` | §5.5 |
 | `POST /admin/documents/{id}/actions` | §5.1 | One action (`publisherActionRequestSchema`) |
+| `DELETE /admin/documents/{id}` | `delete` | Deletes the document (§5.6); body `{ expectedVersion }` |
 | `GET /admin/documents/{id}/history`, `/backlinks`, `/preview` | `view-draft` | §5.5, §7.3, §8.4 |
 
 Export, import, erasure, maintenance and the relay are never endpoints.

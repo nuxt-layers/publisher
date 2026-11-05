@@ -9,6 +9,7 @@ import {
   providePublisherDatabase,
   providePublisherDocumentTypes,
   providePublisherEventSink,
+  providePublisherPolicy,
   providePublisherTitleTemplate,
 } from '../../server/utils/publisher-composition'
 import { migratePublisherDatabase } from '../../server/utils/publisher-server'
@@ -48,6 +49,7 @@ export class Harness {
     providePublisherClock(this.world.clock)
     providePublisherEventSink(this.world.sink)
     providePublisherAssetResolver(this.world.assetResolver)
+    providePublisherPolicy(this.world.policy)
     providePublisherTitleTemplate(this.world.titleTemplate)
     return this.world
   }

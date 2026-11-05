@@ -97,3 +97,14 @@ export const publisherBacklinkSchema = z.strictObject({
   title: z.string().nullable(),
 })
 export type PublisherBacklink = z.infer<typeof publisherBacklinkSchema>
+
+/**
+ * A document's addresses on its site (§7.2): where it is published now, if it
+ * is, and the former addresses that redirect to it. For `seo` and search,
+ * since events carry identifiers only.
+ */
+export const publisherAddressesSchema = z.strictObject({
+  current: sitePathSchema.nullable(),
+  former: z.array(sitePathSchema),
+})
+export type PublisherAddresses = z.output<typeof publisherAddressesSchema>

@@ -1,6 +1,6 @@
 import type { PublisherActionRequest, PublisherContent, PublisherDocument, PublisherSubject, PublisherTypeDeclaration } from '../../shared/contracts'
 import { PUBLISHER_TRANSITIONS, publisherActionRequestSchema, publisherPermission, PublisherFailure } from '../../shared/contracts'
-import { usePublisherApproval, usePublisherRegistry } from '../utils/publisher-composition'
+import { usePublisherApproval, usePublisherPolicy, usePublisherRegistry } from '../utils/publisher-composition'
 import type { Client, DocumentRow, VersionRow } from './store'
 import {
   authorise,
@@ -287,3 +287,37 @@ export async function runMaintenance(): Promise<{ published: number, unpublished
 }
 
 export type { VersionRow }
+
+/**
+ * Deletes a document with every version, its links and the redirects to it
+ * (§5.6). Needs `delete`, the newest version as `expectedVersion`, and no
+ * policy hold. Links to it from other documents render as text afterwards.
+ */
+export async function deleteDocument(input: { siteId: string, subject: PublisherSubject, correlationId: string, documentId: string, expectedVersion: unknown }): Promise<{ versions: number }> {
+  const siteId = siteOf(input.siteId)
+  if (!Number.isInteger(input.expectedVersion) || (input.expectedVersion as number) < 1) throw new PublisherFailure('validation-failed')
+  const context: Context = { correlationId: input.correlationId, actorId: input.subject.identityId }
+  return inTransaction(async (client) => {
+    const row = await loadDocument(client, siteId, input.documentId, true)
+    if (!row) throw new PublisherFailure('forbidden')
+    await authorise(input.subject, siteId, row.type, 'delete', row.id)
+    if (input.expectedVersion !== row.latest_version) throw new PublisherFailure('conflict', 'version-stale')
+    const policy = usePublisherPolicy()
+    if (policy) {
+      let held: unknown
+      try {
+        held = await policy.isHeld({ siteId, documentId: row.id, type: row.type })
+      }
+      catch {
+        throw new PublisherFailure('unavailable', 'policy-failed')
+      }
+      if (held !== false) throw new PublisherFailure('conflict', 'held')
+    }
+    const { rows } = await client.query<{ versions: number }>(`select count(*)::int as "versions" from ${schemaName()}."version" where "document_id" = $1`, [row.id])
+    const versions = rows[0]?.versions ?? 0
+    await client.query(`delete from ${schemaName()}."link" where "to_id" = $1`, [row.id])
+    await client.query(`delete from ${schemaName()}."document" where "id" = $1`, [row.id])
+    await emit(client, 'publisher.document-deleted', { siteId, documentId: row.id, type: row.type, versions }, context)
+    return { versions }
+  })
+}

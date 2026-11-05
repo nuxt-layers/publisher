@@ -27,6 +27,7 @@ const ENDPOINTS = [
   'GET /api/publisher/admin/documents',
   'POST /api/publisher/admin/documents',
   'GET /api/publisher/admin/documents/:documentId',
+  'DELETE /api/publisher/admin/documents/:documentId',
   'POST /api/publisher/admin/documents/:documentId/actions',
   'GET /api/publisher/admin/documents/:documentId/history',
   'GET /api/publisher/admin/documents/:documentId/backlinks',
