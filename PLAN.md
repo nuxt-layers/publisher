@@ -14,7 +14,7 @@
 | 1 | Move to the `nuxt-layers` organisation; export bundle format `nuxt-layers.publisher` | Done |
 | 2 | Documents (ADR-0010): `RESOURCES.md`, this plan, `STORAGE-REGISTER.md`, `capability.json`; external links only in Resources | Done |
 | 3 | Toolchain (ADR-0013): Node 26.13.0, Corepack 0.36.0 and pnpm 12.16.1; `allowBuilds`; CI actions pinned by commit, pnpm through Corepack, the store cached | Done |
-| 3a | [Design review](docs/design-review.md) | Done |
+| 3a | Design review (its decisions are now in the code and `CONTRACT.md`) | Done |
 
 ## Next: the change plan
 
@@ -26,8 +26,8 @@ Each step is one pull request on its own branch, contract and failing tests firs
 | 5 (done) | Moderation out | `receivePublisherSubmission`, `lifecycle.moderation`, the `moderate` action and permission, the queue, two events | Nothing: a service caller creates an ordinary draft |
 | 6 (done) | Delete, and reading addresses | | Delete of a document with every version, link and history; a `document-deleted` event; refused while the policy port reports a hold. A function reading a document's current and former addresses, for `seo` and `doc-search`, since events carry identifiers only |
 | 7 (done) | Composition (ADR-0012) | Every `providePublisher*` call and `migratePublisherDatabase` | One call, `composePublisher({ pool, resolveCaller, decide, types, ... })`, running migrations and returning `tasks`; fakes of every port, refused outside tests |
-| 7b (in review) | `examples/minimal-host` (ADR-0012 §4) | | A host composing Publisher and nothing else, with a CI check that its composition stays within 50 lines and a smoke test. Built from the layer's own dependencies, so no lockfile change |
-| 8 | Contract | `docs/design-review.md`; `docs/guide.md`, which repeats what `CONTRACT.md` will say | `CONTRACT.md` standing alone, ending with the services Publisher expects as requirements on their owners |
+| 7b (done) | `examples/minimal-host` (ADR-0012 §4) | | A host composing Publisher and nothing else, with a CI check that its composition stays within 50 lines and a smoke test. Built from the layer's own dependencies, so no lockfile change |
+| 8 (in review) | Contract | `docs/design-review.md`; `docs/guide.md`, which repeats what `CONTRACT.md` will say | `CONTRACT.md` standing alone, ending with the services Publisher expects as requirements on their owners |
 
 ## Assumptions to confirm
 

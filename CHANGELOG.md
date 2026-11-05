@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `CONTRACT.md` stands alone (ADR-0012 §6): every service Publisher takes, with the layer that fills it, the asset resolver's exact answer, the event types and storage. Removed `docs/guide.md`, which repeated it, and `docs/design-review.md`, whose decisions are now in the code. Documentation only.
 - `examples/minimal-host`: the smallest host, composing Publisher in one call. CI checks its composition stays within ADR-0012's 50 lines, builds it, and smoke-tests it against a disposable database.
 - **One call composes Publisher** (ADR-0012). `composePublisher({ pool, types, resolveCaller, decide, ... })` fills every port, runs the migrations, checks the composition and answers the scheduled `tasks`. Every `providePublisher*` function, `migratePublisherDatabase` and `checkPublisherComposition` is no longer public. The clock takes a `Date` or an ISO 8601 UTC string; events need no sink until `publish` is given. `@nuxt-layers/publisher/testing` ships `createPublisherFakes()`, refused outside tests.
 - **Delete, and reading addresses.** `deletePublisherDocument` (and `DELETE /api/publisher/admin/documents/{id}`, `usePublisher().remove`) removes a document with every version, link, history and redirect, writes `publisher.document-deleted`, and is refused while the new optional policy port (`providePublisherPolicy`, later `policy-map`) holds it (`held`). A fourth permission per type, `publisher.<type>.delete`. `getPublisherAddresses` answers a published document's current and former addresses for `seo` and search.

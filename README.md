@@ -6,13 +6,13 @@ A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Au
 
 **Composing it?** Read [CONTRACT.md](CONTRACT.md), the one-page host contract, and nothing else ([changelog](CHANGELOG.md)).
 
-**Documents:** the [guide](docs/guide.md), the full [contract](docs/contracts.md), the [threat model](docs/threat-model.md), the [storage register](STORAGE-REGISTER.md), the [plan](PLAN.md) and the [manifest](capability.json).
+**Documents:** the host [contract](CONTRACT.md), the maintainers' [contract](docs/contracts.md), the [threat model](docs/threat-model.md), the [storage register](STORAGE-REGISTER.md), the [plan](PLAN.md) and the [manifest](capability.json).
 
 ## Terms
 
 | Term | Means |
 |---|---|
-| **User** | Who acts: a signed-in person, or an automated service such as an integration or a website's own server. Code calls them the `subject` today and, after composition, the result of `resolveCaller` |
+| **User** | Who acts: a signed-in person, or an automated service such as an integration or a website's own server. Code calls them `subject`: the result of the host's `resolveCaller` |
 | **Owner** | On whose behalf: the group a site belongs to. A private account's personal group, a club, a committee, a business, or a whole organisation. Owners never act themselves; their users do |
 | **Tenant** | An organisation or account using the platform, such as a club or a company: the security and data boundary. Its people, groups and roles live in Identity and Authorisation |
 | **Site** | One publishing space: a set of documents with their own addresses, belonging to one owner. The application decides where it is served: its own domain, a subdomain, or a path within the main application. Publisher keeps only the site's identifier |

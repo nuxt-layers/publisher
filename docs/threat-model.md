@@ -1,7 +1,5 @@
 # Threat Model
 
-> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) step 8 changes it: the contract stands alone. Each step updates this document.
-
 The publisher decides what a site says in public (a **site** is one publishing space, belonging to one owner within a **tenant**: see the README's Terms), so its first duty is that nothing is public unless it was meant to be: no draft, no unapproved version, no unmoderated submission, and no markup an editor or a submitter smuggled in. This register follows Security §16, data stores, and ADR-0006 (both in [Resources](../RESOURCES.md)). Status is the state of the implementation; the evidence is the test that proves each control.
 
 ## 1. Assets
