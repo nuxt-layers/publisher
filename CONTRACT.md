@@ -1,8 +1,6 @@
 # Publisher Host Contract
 
-> **Note:** this describes the code as it is today. [PLAN.md](PLAN.md) step 8 changes it: the contract stands alone. Each step updates this document.
-
-What a host needs to compose Publisher, and nothing else (ADR-0012 §6, in [Resources](RESOURCES.md)). The [longer contract](docs/contracts.md) and the code stay the source: where this page disagrees with them, this page is the bug. Publisher predates ADR-0012: there is no single call, and it does not take `resolveCaller` or `decide` yet, so today the host fills each port below itself.
+> **In short:** everything a host needs to install, compose and use Publisher, and nothing else (ADR-0012 §6). Publisher keeps documents of the types a host registers, moves them from draft to published, gives them addresses, and serves them; it draws nothing and decides nothing about who may act. Maintainers' detail lives under `docs/`; this page is complete without it.
 
 ## Install
 
@@ -29,43 +27,42 @@ export default defineNitroPlugin(async () => {
 })
 ```
 
-It runs Publisher's migrations and checks the composition, failing at start-up if anything required is missing. For tests, `createPublisherFakes()` from `@nuxt-layers/publisher/testing` gives every service as `fakes.options`; it is refused outside tests. `examples/minimal-host` in this repository is a complete, working host in 17 lines.
-
-`publisherSubjectOf`, `authorisationInputOf`, `siteIdFor` and `titleFor` are the host's mappings, described under "Host passes".
+It runs Publisher's migrations and checks the composition, failing at start-up if anything required is missing. For tests, `createPublisherFakes()` from `@nuxt-layers/publisher/testing` gives every service as `fakes.options`; it is refused outside tests. `examples/minimal-host` in this repository is a complete, working host in 17 lines. `siteIdFor`, `bus` and `scheduler` above stand for the host's own code.
 
 ## Settings
 
 | Setting | Default | Does |
 |---|---|---|
 | `runtimeConfig.publisher.api.enabled` (`NUXT_PUBLISHER_API_ENABLED`) | `true` | `false` switches the HTTP API off: every `/api/publisher/*` request answers a plain 404 before any port is asked, as if absent. Server functions still work |
-| `PublisherDatabase.schema` | `publisher` | The PostgreSQL schema the layer owns |
-| `PublisherDatabase.migrationPool`, `runtimeRole` | The runtime pool; none | Run migrations as another role and grant the runtime role |
+| `schema` (a `composePublisher` option) | `publisher` | The PostgreSQL schema the layer owns |
+| `migrationPool`, `runtimeRole` (options) | The runtime pool; none | Run migrations as another role and grant the runtime role |
 | Each type's `personalData.retentionDays` | None | 30 to 2,190 days to keep superseded versions of a personal-data type |
 
 The layer reads no other environment variable. Document types are code the host registers, never settings.
 
 ## Host passes
 
-| Need | Shared shape (ADR-0012 §2) | Today |
-|---|---|---|
-| Database | A `pg` pool; the layer owns its schema | `pool`, and optionally `migrationPool`, `schema` (default `publisher`) and `runtimeRole`. Migrations run inside `composePublisher` |
-| Document types | Not a shared shape | `types`, each from `definePublisherDocumentType`, with `type`, `label`, `fields` (a `z.strictObject`, every string and array bounded), `address`, `listing`, `lifecycle`, `personalData`. No default type |
-| Caller | `resolveCaller(event)` | `resolveCaller(event)` → `{ tenantId, subjectId \| null, ... }`; `null`, or a `null` subject, is nobody signed in. Publisher records `subjectId` (a UUIDv7) as who acted and passes the rest to `decide` untouched. `resolveSite(event)` → the site id or `null`, needed for the HTTP API |
-| Access | `decide(caller, action, resource)` | `decide(user, action, { siteId, type, documentId \| null })` → `{ allowed, reason? }`, where `action` is a permission such as `publisher.<type>.publish`. `reason: 'step-up'` becomes `insufficient-assurance`. Required |
-| Approval | Not a shared shape | `PublisherApproval`, for types with `lifecycle.approval`: `request({ siteId, documentId, type, version, digest, permission, requesterId, correlationId })` → `{ approvalId }`; `decision({ approvalId })` → `{ state, digest }`. Publishes only on `approved` for that exact digest; who approves is the approvals process's rule |
-| Policy | Not a shared shape | Optional `policy`, a `PublisherPolicy` (later `policy-map`): `isHeld({ siteId, documentId, type })` → `boolean`. Anything but `false` refuses a delete (`held`). Without it, nothing is held |
-| Mail | `send(...)` | None: the layer sends nothing |
-| Events | The outbox, drained by `relay()` | Optional `publish(events)`: the relay task sends events to it, at least once, in order. Without it, events stay in the outbox |
-| Scheduled work | `tasks: { name, every, run }[]` | `composePublisher` answers `tasks`: `publisher-maintenance` every minute (scheduled publishing and archiving, retention), and `publisher-relay` every minute when `publish` is given. Both idempotent; never endpoints |
-| Clock | `now()`, system clock by default | Optional `now()` → a `Date` or an ISO 8601 UTC string; anything else fails closed as `unavailable` |
-| Assets, titles | Not shared shapes | Optional. `PublisherAssetResolver.resolve({ siteId, assetIds })` → each id's `{ url, width?, height? }` or `null`; without it images are refused. `PublisherTitleTemplate.format({ siteId, title, type, locale })`, e.g. Configuration's `seo.title-template`; without it titles stand alone |
+| Need | Shared shape (ADR-0012 §2) | What Publisher takes | Filled by |
+|---|---|---|---|
+| Database | A `pg` pool; the layer owns its schema | `pool`, and optionally `migrationPool`, `schema` (default `publisher`) and `runtimeRole`. Migrations run inside `composePublisher` | The host |
+| Document types | Not a shared shape | `types`, each from `definePublisherDocumentType`, with `type`, `label`, `fields` (a `z.strictObject`, every string and array bounded), `address`, `listing`, `lifecycle`, `personalData`. No default type | The host |
+| Caller | `resolveCaller(event)` | `resolveCaller(event)` → `{ tenantId, subjectId \| null, ... }`; `null`, or a `null` subject, is nobody signed in. Publisher records `subjectId` (a UUIDv7) as who acted and passes the rest to `decide` untouched. `resolveSite(event)` → the site id or `null`, needed for the HTTP API | `authentication`; the site from `site-hosting`, or the host until it exists |
+| Access | `decide(caller, action, resource)` | `decide(user, action, { siteId, type, documentId \| null })` → `{ allowed, reason? }`, where `action` is a permission such as `publisher.<type>.publish`. `reason: 'step-up'` becomes `insufficient-assurance`. Required | `authorisation` |
+| Approval | Not a shared shape | `approval`, for types with `lifecycle.approval`: `request({ siteId, documentId, type, version, digest, permission, requesterId, correlationId })` → `{ approvalId }`; `decision({ approvalId })` → `{ state, digest }`. Publishes only on `approved` for that exact digest; who approves is the approvals process's rule | `workflow`, or the host until it exists |
+| Policy | Not a shared shape | Optional `policy`, a `PublisherPolicy` (later `policy-map`): `isHeld({ siteId, documentId, type })` → `boolean`. Anything but `false` refuses a delete (`held`). Without it, nothing is held | `policy-map` |
+| Mail | `send(...)` | None: the layer sends nothing | — |
+| Events | The outbox, drained by `relay()` | Optional `publish(events)`: the relay task sends events to it, at least once, in order. Without it, events stay in the outbox | `events-queue`, or the host |
+| Scheduled work | `tasks: { name, every, run }[]` | `composePublisher` answers `tasks`: `publisher-maintenance` every minute (scheduled publishing and archiving, retention), and `publisher-relay` every minute when `publish` is given. Both idempotent; never endpoints | `scheduler`, or the host |
+| Clock | `now()`, system clock by default | Optional `now()` → a `Date` or an ISO 8601 UTC string; anything else fails closed as `unavailable` | `clock`, or the system clock |
+| Assets, titles | Not shared shapes | Optional. `assets.resolve({ siteId, assetIds })` → an object keyed by every asset id asked, each `{ url, width?, height? }` or `null` when unknown. `url` must be an `https:` address or a site path, and `width` and `height` positive integers; anything else, or a missing id, is answered as `null` in the rendered document's `links.assets`; without it images are refused. `titleTemplate.format({ siteId, title, type, locale })` → the page and feed title, e.g. Configuration's `seo.title-template`; without it titles stand alone | `media` or the host's asset store; `configuration` or the host |
 
-Every port rejects on failure; the layer then answers `unavailable`, never a partial answer.
+Every service rejects on failure; the layer then answers `unavailable`, never a partial answer. Each row is a requirement on the layer that fills it: until that layer exists, the host fills it, and `createPublisherFakes()` stands in for all of them in tests.
 
 ## Client and server functions
 
 | Side | Function | Does |
 |---|---|---|
+| Server | `composePublisher(options)` | The one call, at start-up (see Install); answers `{ tasks }` |
 | Client | `usePublisher()` | Calls the HTTP API: `resolve(path, preview)`, `list(query)`, `types()`, `documents(query)`, `document(id, version?)`, `history(id)`, `backlinks(id)`, `create(type, content)`, `act(id, action)`, `remove(id, expectedVersion)`. Decides nothing; `publisherErrorOf(error)` reads `{ code, reason? }` |
 | Server | `createPublisherDocument({ siteId, subject, correlationId, type, content })` | A draft at version 1 |
 | Server | `transitionPublisherDocument({ siteId, subject, correlationId, documentId, request })` | One action: `save`, `submit`, `withdraw`, `publish` (`publishAt?`, `unpublishAt?`), `unpublish`, `archive` (both with `acknowledgedLinks`), `reopen`, `restore` (`version`); each with `expectedVersion` |
@@ -73,13 +70,13 @@ Every port rejects on failure; the layer then answers `unavailable`, never a par
 | Server | `resolvePublisherPath({ siteId, path, viewer?, preview? })` | `{ kind: 'document', rendered }`, `{ kind: 'redirect', to, status: 301 }` or `{ kind: 'none' }` |
 | Server | `getPublishedDocument`, `listPublishedDocuments`, `getPublisherFeed`, `listPublisherSitemapEntries` | One document (by path or id), a listing (up to 100, equality filters), RSS or Atom, sitemap paths |
 | Server only | `getPublisherAddresses({ siteId, documentId })` | `{ current, former[] }` for a published document, for `seo` and search; nothing otherwise |
-| Server | `getPublisherDocument`, `listPublisherDocuments`, `listPublisherHistory`, `listPublisherBacklinks` | Administration reads under `view-draft` (the queue under `moderate`) |
+| Server | `getPublisherDocument`, `listPublisherDocuments`, `listPublisherHistory`, `listPublisherBacklinks` | Administration reads, under `view-draft` |
 | Server only | `exportPublisherContent`, `importPublisherContent` | A site's bundle out and in; import is also how a host seeds content |
 | Server only | `exportPublisherPersonData({ identityId })`, `erasePublisherPerson({ identityId, correlationId })` | When a person asks for their data or its erasure (the host decides when) |
 
 The HTTP API, under `/api/publisher`: `GET /resolve`, `GET /documents`, `GET /feeds/{type}/rss` and `/atom` for anyone; `GET /admin/types`, `GET`/`POST /admin/documents`, `GET /admin/documents/{id}`, `POST /admin/documents/{id}/actions`, `DELETE /admin/documents/{id}` (`{ expectedVersion }`), `GET .../history`, `.../backlinks`, `.../preview` for the signed in.
 
-**The editor slot.** `GET /admin/types` (`usePublisher().types()`) answers each type the subject may touch with its `label`, `address`, `schema` (the fields as JSON Schema) and `richTextFields` (`{ path, profile, max }`), and what the subject `may` do. `content-editor` plugs in there: it builds the form from that answer and saves through `create` and `act`. Plain form controls work too: the server checks every save.
+**The editor slot.** `GET /admin/types` (`usePublisher().types()`) answers each type the user may touch with its `label`, `address`, `schema` (the fields as JSON Schema) and `richTextFields` (`{ path, profile, max }`), and what the user `may` do. `content-editor` plugs in there: it builds the form from that answer and saves through `create` and `act`. Plain form controls work too: the server checks every save.
 
 Errors are `{ code, reason? }`: `unauthenticated` 401, `forbidden` 403, `not-found` 404, `insufficient-assurance` 403, `validation-failed` 400 (a content problem such as `not-in-profile`, `image-without-alt`, `unknown-type`), `conflict` 409 (`version-stale`, `invalid-transition`, `address-taken`, `review-required`, `approval-missing`, `consent-missing`, `scheduling-disabled`, `still-linked`, `held`, `erased`), `unavailable` 503. A server function throws `PublisherFailure` with the same `code` and `reason`.
 
@@ -123,4 +120,6 @@ A screen the host draws must still:
 - Personal-data types need the consent field before publishing (`consent-missing`); their subject and consent fields never reach a reader.
 - A missing required port throws `PublisherCompositionError` at first use; nothing falls back, and there is no in-memory store. Stored documents of a type the host stopped registering fail `composePublisher` at start-up.
 - Your lockfile must record `@nuxt-layers/rich-text` as its `codeload.github.com` tarball, never `git@github.com`.
-- Events carry identifiers, codes, counts and times only: read content through the server functions.
+- Events carry identifiers, codes, counts and times only: read content through the server functions, and addresses through `getPublisherAddresses`. The types: `publisher.document-created`, `document-saved`, `review-requested`, `review-withdrawn`, `document-scheduled`, `document-published`, `document-unpublished`, `document-reopened`, `address-changed`, `document-deleted`, `person-erased`, `content-imported` and `retention-applied`.
+- **Storage.** Publisher stores only in its own PostgreSQL schema (documents, versions, links, redirects, the event outbox and its migrations); it sets no cookies and uses no browser storage. The host decides the notices and consent this needs where it operates; `STORAGE-REGISTER.md` has the detail.
+- Server functions name the user `subject`: the result of `resolveCaller`, with `subjectId` as `identityId`.

@@ -1,7 +1,5 @@
 # Publisher Contract (version 1)
 
-> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) step 8 changes it: the contract stands alone. Each step updates this document.
-
 `@nuxt-layers/publisher/contracts` is the only supported import path for this capability's types and pure helpers. It imports nothing but `zod`: no Nuxt, Vue, h3, server code, driver or other `@nuxt-layers/*` package.
 
 The publisher answers one question: **which version of which document is published at which address, for whom, now?** It owns the lifecycle every published document shares, and knows nothing about what any document is: every document type is the host's registration (§3). This is contract version 1 (§17); section numbers are stable.
