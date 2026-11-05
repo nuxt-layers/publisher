@@ -1,6 +1,5 @@
 import type { PublisherEvent } from './events'
 import type { PublisherSubject } from './lifecycle'
-import type { PublisherRisk } from './types'
 
 /**
  * Ports the host supplies (docs/contracts.md §11), in the publisher's own
@@ -24,23 +23,30 @@ export interface PublisherDatabase {
   runtimeRole?: string
 }
 
-export type Consistency = 'strong' | 'bounded'
+/** What an access decision is about: a document, or a whole type on a site when `documentId` is `null` (listing, creating). */
+export interface PublisherResource {
+  siteId: string
+  type: string
+  documentId: string | null
+}
 
 /**
- * Authorisation, through the host: whether an identity holds one of the
- * publisher's permissions now, on a site. `documentId` is `null` for
- * type-wide questions (listing, creating); the host decides on which group
- * to ask, such as the site's tenant's root group.
+ * Authorisation, through the host (ADR-0012's `decide`): whether the user may
+ * take the action, a permission such as `publisher.<type>.publish`, on the
+ * resource now. Risk, step-up and which group decides are Authorisation's.
+ * `reason: 'step-up'` asks the user to sign in again first; any other refusal
+ * is `forbidden`.
  */
 export interface PublisherAccessDecision {
-  allows(input: { identityId: string, permission: string, siteId: string, type: string, documentId: string | null, consistency: Consistency }): Promise<boolean>
+  decide(subject: PublisherSubject, action: string, resource: PublisherResource): Promise<{ allowed: boolean, reason?: string }>
 }
 
 export type PublisherApprovalState = 'pending' | 'approved' | 'rejected' | 'expired'
 
 /**
- * iam-integration's approvals process, through the host. The publisher asks
- * once per version and binds the answer to that version's digest.
+ * The approvals process, through the host (later `workflow`). Its rules (who
+ * approves, how many, never the requester) are its own; the publisher asks
+ * once per version and publishes only on approval of that version's digest.
  */
 export interface PublisherApproval {
   request(input: {
@@ -50,13 +56,10 @@ export interface PublisherApproval {
     version: number
     digest: string
     permission: string
-    risk: PublisherRisk
-    /** Approvers needed beyond the requester (`APPROVAL_FLOOR`). */
-    requiredApprovals: number
     requesterId: string
     correlationId: string
   }): Promise<{ approvalId: string }>
-  decision(input: { approvalId: string }): Promise<{ state: PublisherApprovalState, digest: string, approverIds: readonly string[] }>
+  decision(input: { approvalId: string }): Promise<{ state: PublisherApprovalState, digest: string }>
 }
 
 /** Who is signed in, for an HTTP request (an h3 event, typed loosely). `null` when nobody is. */

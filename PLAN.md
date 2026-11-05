@@ -22,9 +22,9 @@ Each step is one pull request on its own branch, contract and failing tests firs
 
 | Step | Work | Removes | Adds |
 |---|---|---|---|
-| 4 | Security decisions out | Risk levels and floors, `lifecycle.risks`, step-up and freshness, `APPROVAL_FLOOR`, the subject's shape | `decide(caller, action, { siteId, type, documentId })` and an opaque caller; approval checks only the approved digest |
+| 4 (in review) | Security decisions out | Risk levels and floors, `lifecycle.risks`, step-up and freshness, `APPROVAL_FLOOR`, the subject's shape | `decide(caller, action, { siteId, type, documentId })` and an opaque caller; approval checks only the approved digest |
 | 5 | Moderation out | `receivePublisherSubmission`, `lifecycle.moderation`, the `moderate` action and permission, the queue, two events | Nothing: a service caller creates an ordinary draft |
-| 6 | Delete | | Delete of a document with every version, link and history; a `document-deleted` event; refused while the policy port reports a hold |
+| 6 | Delete, and reading addresses | | Delete of a document with every version, link and history; a `document-deleted` event; refused while the policy port reports a hold. A function reading a document's current and former addresses, for `seo` and `doc-search`, since events carry identifiers only |
 | 7 | Composition (ADR-0012) | Every `providePublisher*` call and `migratePublisherDatabase` | One call, `composePublisher({ pool, resolveCaller, decide, types, ... })`, running migrations and returning `tasks`; fakes of every port, refused outside tests; `examples/minimal-host` with a budget check and smoke test |
 | 8 | Contract | `docs/design-review.md`; `docs/guide.md`, which repeats what `CONTRACT.md` will say | `CONTRACT.md` standing alone, ending with the services Publisher expects as requirements on their owners |
 

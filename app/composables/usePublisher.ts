@@ -8,7 +8,6 @@ import type {
   PublisherListing,
   PublisherPermissionAction,
   PublisherResolution,
-  PublisherRisk,
   PublisherVersion,
 } from '../../shared/contracts'
 import { PUBLISHER_ERROR_CODES } from '../../shared/contracts'
@@ -18,7 +17,6 @@ export interface PublisherTypeView extends PublisherEditorType {
   listing: { listable: boolean, order: string, filterable: string[] }
   lifecycle: { approval: boolean, moderation: boolean, scheduling: boolean }
   personalData: boolean
-  risks: Record<PublisherPermissionAction, PublisherRisk>
   may: Record<PublisherPermissionAction, boolean>
 }
 

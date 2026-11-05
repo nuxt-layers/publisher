@@ -57,11 +57,11 @@ export function providePublisherDatabase(next: PublisherDatabase): void {
 
 /** Authorisation's decisions on the publisher's permissions. */
 export function providePublisherAccessDecision(next: PublisherAccessDecision): void {
-  needs(next, ['allows'], 'providePublisherAccessDecision expects an allows(input) function.')
+  needs(next, ['decide'], 'providePublisherAccessDecision expects a decide(user, action, resource) function.')
   access = next
 }
 
-/** iam-integration's approvals, for types with `approval`. */
+/** The approvals process, for types with `approval`. */
 export function providePublisherApproval(next: PublisherApproval): void {
   needs(next, ['request', 'decision'], 'providePublisherApproval expects request(input) and decision(input) functions.')
   approval = next

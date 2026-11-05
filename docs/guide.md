@@ -58,7 +58,7 @@ export default defineNitroPlugin(async () => {
 
   // IAM, through each member's own server functions
   providePublisherSubjectResolver({ resolve: event => authenticatedPrincipal(event) })
-  providePublisherAccessDecision({ allows: input => authorisation.allows(input) })
+  providePublisherAccessDecision({ decide: (user, action, resource) => authorisation.decide(user, action, resource) })
   providePublisherApproval({
     request: input => approvals.request(input),
     decision: input => approvals.decision(input),

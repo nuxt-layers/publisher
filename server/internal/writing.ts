@@ -1,5 +1,5 @@
 import type { PublisherActionRequest, PublisherContent, PublisherDocument, PublisherSubject, PublisherTypeDeclaration } from '../../shared/contracts'
-import { APPROVAL_FLOOR, PUBLISHER_TRANSITIONS, publisherActionRequestSchema, publisherPermission, PublisherFailure } from '../../shared/contracts'
+import { PUBLISHER_TRANSITIONS, publisherActionRequestSchema, publisherPermission, PublisherFailure } from '../../shared/contracts'
 import { usePublisherApproval, usePublisherRegistry } from '../utils/publisher-composition'
 import type { Client, DocumentRow, VersionRow } from './store'
 import {
@@ -77,10 +77,9 @@ export async function receiveSubmission(input: { siteId: string, correlationId: 
   })
 }
 
-/** Whether the approval port consents to publishing this version (§5.2). */
-async function consented(row: DocumentRow, version: VersionRow, publisherId: string | null): Promise<boolean> {
+/** Whether the approval port has approved exactly this version (§5.2). Its rules on who approves are its own. */
+async function consented(row: DocumentRow, version: VersionRow): Promise<boolean> {
   if (row.approval_id === null || row.review_version !== version.version) return false
-  const declaration = declarationOf(row.type)
   let answer: Awaited<ReturnType<ReturnType<typeof usePublisherApproval>['decision']>>
   const approval = usePublisherApproval()
   try {
@@ -89,10 +88,7 @@ async function consented(row: DocumentRow, version: VersionRow, publisherId: str
   catch {
     throw new PublisherFailure('unavailable', 'approval-failed')
   }
-  if (answer.state !== 'approved' || answer.digest !== version.digest) return false
-  const excluded = new Set([row.review_requester, publisherId].filter(Boolean))
-  const approvers = new Set(answer.approverIds.filter(approver => !excluded.has(approver)))
-  return approvers.size >= APPROVAL_FLOOR[declaration.risks.publish]
+  return answer.state === 'approved' && answer.digest === version.digest
 }
 
 function consentRecorded(declaration: PublisherTypeDeclaration, content: PublisherContent): boolean {
@@ -196,8 +192,6 @@ export async function transitionDocument(input: { siteId: string, subject: Publi
             version: newest.version,
             digest: newest.digest,
             permission: publisherPermission(row.type, 'publish'),
-            risk: declaration.risks.publish,
-            requiredApprovals: APPROVAL_FLOOR[declaration.risks.publish],
             requesterId: input.subject.identityId,
             correlationId: input.correlationId,
           }))
@@ -232,7 +226,7 @@ export async function transitionDocument(input: { siteId: string, subject: Publi
         if (scheduled && row.status === 'published') throw new PublisherFailure('conflict', 'invalid-transition')
         if (declaration.lifecycle.approval) {
           if (row.approval_id === null || row.review_version !== newest.version) throw new PublisherFailure('conflict', 'review-required')
-          if (!await consented(row, newest, input.subject.identityId)) throw new PublisherFailure('conflict', 'approval-missing')
+          if (!await consented(row, newest)) throw new PublisherFailure('conflict', 'approval-missing')
         }
         if (!consentRecorded(declaration, newest.content)) throw new PublisherFailure('conflict', 'consent-missing')
         if (scheduled) {
@@ -290,7 +284,7 @@ export async function runMaintenance(): Promise<{ published: number, unpublished
       const declaration = declarationOf(row.type)
       const newest = (await loadVersion(client, row.id, row.latest_version))!
       // The schedule's consent is checked again: a version no longer consented to waits.
-      if (declaration.lifecycle.approval && !await consented(row, newest, null)) continue
+      if (declaration.lifecycle.approval && !await consented(row, newest)) continue
       if (!consentRecorded(declaration, newest.content)) continue
       await client.query('savepoint "due"')
       try {

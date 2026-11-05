@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import type { PublisherStatus } from './documents'
 import { publisherContentSchema } from './documents'
-import { instantSchema } from './identifiers'
-import type { PublisherPermissionAction, PublisherRisk } from './types'
+import { identifierSchema, instantSchema } from './identifiers'
+import type { PublisherPermissionAction } from './types'
 
 /**
  * The lifecycle (docs/contracts.md §5): one state machine for every type.
@@ -61,46 +61,16 @@ export const publisherActionRequestSchema = z.discriminatedUnion('action', [
 export type PublisherActionRequest = z.output<typeof publisherActionRequestSchema>
 export type PublisherActionRequestInput = z.input<typeof publisherActionRequestSchema>
 
-/** Approvers needed beyond the requester, by the publish permission's risk (iam-integration's approvals process). */
-export const APPROVAL_FLOOR: Readonly<Record<PublisherRisk, number>> = { low: 0, medium: 0, high: 1, critical: 1 }
-
-/** A `critical` action needs a phishing-resistant sign-in this recent. */
-export const CRITICAL_FRESHNESS_MINUTES = 15
-
-/** A subject's assurance, from Authentication through the host. */
-export interface PublisherAssurance {
-  level: 'aal1' | 'aal2' | 'aal3'
-  phishingResistant: boolean
-  /** When the subject last authenticated (ISO 8601). */
-  authenticatedAt: string
-}
-
-/** Who acts, from the host's subject resolver only. */
+/**
+ * The user, from the host's resolver only. Publisher reads only the
+ * identifier, to record who acted; everything else the resolver gives (such
+ * as how they signed in) is passed to the access decision untouched.
+ */
 export interface PublisherSubject {
   identityId: string
-  kind: 'person' | 'service'
-  assurance: PublisherAssurance
+  readonly [key: string]: unknown
 }
 
-export const subjectSchema = z.strictObject({
-  identityId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
-  kind: z.enum(['person', 'service']),
-  assurance: z.strictObject({
-    level: z.enum(['aal1', 'aal2', 'aal3']),
-    phishingResistant: z.boolean(),
-    authenticatedAt: instantSchema,
-  }),
+export const subjectSchema = z.looseObject({
+  identityId: identifierSchema,
 })
-
-/**
- * Whether the assurance is enough for an action at this risk: `high` needs
- * aal2; `critical` aal2, phishing resistant, within 15 minutes. As
- * Configuration's and the IAM members'.
- */
-export function meetsStepUp(risk: PublisherRisk, assurance: PublisherAssurance, now: Date): boolean {
-  if (risk === 'low' || risk === 'medium') return true
-  if (assurance.level === 'aal1') return false
-  if (risk === 'high') return true
-  const age = now.getTime() - Date.parse(assurance.authenticatedAt)
-  return assurance.phishingResistant && age >= 0 && age <= CRITICAL_FRESHNESS_MINUTES * 60_000
-}

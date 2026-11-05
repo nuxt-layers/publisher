@@ -31,11 +31,10 @@ describe('composition: start-up', () => {
     expect(usePublisherRegistry().size).toBe(0)
   })
 
-  it('fails closed at start-up on a duplicate, an invalid declaration or a risk below the floor, keeping the registration in force', () => {
+  it('fails closed at start-up on a duplicate or an invalid declaration, keeping the registration in force', () => {
     providePublisherDocumentTypes([bulletinType])
     expect(() => providePublisherDocumentTypes([landingType, landingType])).toThrow(/twice/)
     expect(() => providePublisherDocumentTypes([{ ...bulletinType, type: 'Not A Key' }])).toThrow()
-    expect(() => providePublisherDocumentTypes([{ ...bulletinType, lifecycle: { ...bulletinType.lifecycle, risks: { publish: 'low' } } }])).toThrow(/floor/)
     expect([...usePublisherRegistry().keys()]).toEqual(['bulletin'])
   })
 

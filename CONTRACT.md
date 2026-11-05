@@ -39,7 +39,6 @@ export default defineNitroPlugin(async () => {
 | `runtimeConfig.publisher.api.enabled` (`NUXT_PUBLISHER_API_ENABLED`) | `true` | `false` switches the HTTP API off: every `/api/publisher/*` request answers a plain 404 before any port is asked, as if absent. Server functions still work |
 | `PublisherDatabase.schema` | `publisher` | The PostgreSQL schema the layer owns |
 | `PublisherDatabase.migrationPool`, `runtimeRole` | The runtime pool; none | Run migrations as another role and grant the runtime role |
-| Each type's `lifecycle.risks` | The floors under "Permissions" | Raises a permission's risk; lower is refused at start-up |
 | Each type's `personalData.retentionDays` | None | 30 to 2,190 days to keep superseded versions of a personal-data type |
 
 The layer reads no other environment variable. Document types are code the host registers, never settings.
@@ -50,9 +49,9 @@ The layer reads no other environment variable. Document types are code the host 
 |---|---|---|
 | Database | A `pg` pool; the layer owns its schema | `providePublisherDatabase({ dialect: 'postgres', pool, schema?, migrationPool?, runtimeRole? })`; any pool with `query` and `connect` |
 | Document types | Not a shared shape | `providePublisherDocumentTypes(declarations)`, each from `definePublisherDocumentType`, with `type`, `label`, `fields` (a `z.strictObject`, every string and array bounded), `address`, `listing`, `lifecycle`, `personalData`. No default type |
-| Caller | `resolveCaller(event)` | Not taken yet. `PublisherSubjectResolver.resolve(event)` → `{ identityId, kind: 'person' \| 'service', assurance: { level, phishingResistant, authenticatedAt } }` or `null`, mapped from Authentication's principal. `PublisherSiteResolver.resolve(event)` → the site id or `null` (e.g. Identity's tenant for the host name). Both needed for the HTTP API |
-| Access | `decide(caller, action, resource)` | Not taken yet. `PublisherAccessDecision.allows({ identityId, permission, siteId, type, documentId \| null, consistency })` → `boolean`, mapped to Authorisation's `authorise` on the group the host picks for the site. Required |
-| Approval | Not a shared shape | `PublisherApproval`, for types with `lifecycle.approval`: `request({ siteId, documentId, type, version, digest, permission, risk, requiredApprovals, requesterId, correlationId })` → `{ approvalId }`; `decision({ approvalId })` → `{ state, digest, approverIds }`, from whatever approvals process the host supplies |
+| Caller | `resolveCaller(event)` | Not taken yet. `PublisherSubjectResolver.resolve(event)` → the signed-in user, `{ identityId, ... }` (a UUIDv7; anything else is passed to `decide` untouched), or `null`. `PublisherSiteResolver.resolve(event)` → the site id or `null`. Both needed for the HTTP API |
+| Access | `decide(caller, action, resource)` | `PublisherAccessDecision.decide(user, action, { siteId, type, documentId \| null })` → `{ allowed, reason? }`, where `action` is a permission such as `publisher.<type>.publish`. `reason: 'step-up'` becomes `insufficient-assurance`. Required |
+| Approval | Not a shared shape | `PublisherApproval`, for types with `lifecycle.approval`: `request({ siteId, documentId, type, version, digest, permission, requesterId, correlationId })` → `{ approvalId }`; `decision({ approvalId })` → `{ state, digest }`. Publishes only on `approved` for that exact digest; who approves is the approvals process's rule |
 | Mail | `send(...)` | None: the layer sends nothing |
 | Events | The outbox, drained by `relay()` | `relayPublisherOutbox({ limit? })` → `PublisherEventSink.publish(events)`, at least once, in order |
 | Scheduled work | `tasks: { name, every, run }[]` | `runPublisherMaintenance()` every minute (scheduled publishing and archiving, retention); `relayPublisherOutbox()` every minute. Both idempotent; never endpoints |
@@ -83,14 +82,14 @@ Errors are `{ code, reason? }`: `unauthenticated` 401, `forbidden` 403, `not-fou
 
 ## Permissions
 
-Four per registered type, from `publisherPermissions(usePublisherRegistry())`, for Authorisation's catalogue. Risk sets step-up: `high` needs `aal2`; `critical` `aal2`, phishing resistant, within 15 minutes. For `publish` on a type with `approval`, `high` and `critical` also need one approver beyond the requester.
+Four per registered type, from `publisherPermissions(usePublisherRegistry())`, for Authorisation's catalogue, which sets each one's risk and step-up. Approvers are the approvals process's rule.
 
-| Permission | Floor (personal-data type) | Allows |
-|---|---|---|
-| `publisher.<type>.view-draft` | `low` (`medium`) | Drafts, history, backlinks, administration lists, previews |
-| `publisher.<type>.edit` | `low` (`medium`) | Create, save, submit, withdraw, reopen, restore |
-| `publisher.<type>.publish` | `medium` | Publish, schedule, unpublish, archive |
-| `publisher.<type>.moderate` | `medium` | Accept or reject submissions |
+| Permission | Allows |
+|---|---|
+| `publisher.<type>.view-draft` | Drafts, history, backlinks, administration lists, previews |
+| `publisher.<type>.edit` | Create, save, submit, withdraw, reopen, restore |
+| `publisher.<type>.publish` | Publish, schedule, unpublish, archive |
+| `publisher.<type>.moderate` | Accept or reject submissions |
 
 ## Screens
 

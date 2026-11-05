@@ -46,7 +46,7 @@ describe.skipIf(!hasDatabase)('the lifecycle (PostgreSQL)', () => {
     let document = await create(editor, type, content)
     if (type === 'landing') {
       document = await act(editor, document, { action: 'submit', expectedVersion: document.version })
-      world.approve(world.approvalFor(document.id)!, bob)
+      world.approve(world.approvalFor(document.id)!)
     }
     return act(editor, document, { action: 'publish', expectedVersion: document.version })
   }
@@ -76,7 +76,7 @@ describe.skipIf(!hasDatabase)('the lifecycle (PostgreSQL)', () => {
       expect(page.version).toBe(2)
       page = await act(editor, page, { action: 'submit', expectedVersion: 2 })
       expect(page.status).toBe('in-review')
-      world.approve(world.approvalFor(page.id)!, bob)
+      world.approve(world.approvalFor(page.id)!)
       page = await act(editor, page, { action: 'publish', expectedVersion: 2 })
       expect(page).toMatchObject({ status: 'published', publishedVersion: 2, path: '/about' })
 
@@ -181,11 +181,13 @@ describe.skipIf(!hasDatabase)('the lifecycle (PostgreSQL)', () => {
       await expect(act(editor, documentId, { action: 'moderate', expectedVersion: 1, outcome: 'accept' })).rejects.toMatchObject({ code: 'forbidden' })
     })
 
-    it('refuses publishing below the assurance the publish permission\'s risk needs', async () => {
+    it('passes the user, the action and the resource to Authorisation, and relays a step-up as `insufficient-assurance`', async () => {
       let document = await create(editor, 'landing', landing('secure'))
       document = await act(editor, document, { action: 'submit', expectedVersion: 1 })
-      world.approve(world.approvalFor(document.id)!, bob)
-      await expect(act(person(alice, world.time, 'weak'), document, { action: 'publish', expectedVersion: 1 })).rejects.toMatchObject({ code: 'insufficient-assurance' })
+      world.approve(world.approvalFor(document.id)!)
+      world.stepUp.add(`${alice}|publisher.landing.publish`)
+      await expect(act(editor, document, { action: 'publish', expectedVersion: 1 })).rejects.toMatchObject({ code: 'insufficient-assurance' })
+      world.stepUp.clear()
       await expect(act(editor, document, { action: 'publish', expectedVersion: 1 })).resolves.toMatchObject({ status: 'published' })
     })
   })
@@ -196,13 +198,11 @@ describe.skipIf(!hasDatabase)('the lifecycle (PostgreSQL)', () => {
       await expect(act(editor, document, { action: 'publish', expectedVersion: 1 })).rejects.toMatchObject({ code: 'conflict', reason: 'review-required' })
       document = await act(editor, document, { action: 'submit', expectedVersion: 1 })
       const first = world.approvalFor(document.id)!
-      expect(world.approvals.get(first)!.input).toMatchObject({ documentId: document.id, version: 1, risk: 'high', requiredApprovals: 1, requesterId: alice, permission: 'publisher.landing.publish' })
-      // Pending, rejected, approved only by the requester: no consent.
-      await expect(act(editor, document, { action: 'publish', expectedVersion: 1 })).rejects.toMatchObject({ code: 'conflict', reason: 'approval-missing' })
-      world.approve(first, alice)
+      expect(world.approvals.get(first)!.input).toMatchObject({ documentId: document.id, version: 1, requesterId: alice, permission: 'publisher.landing.publish' })
+      // Pending: no consent. Who may approve is the approvals process's rule, not Publisher's.
       await expect(act(editor, document, { action: 'publish', expectedVersion: 1 })).rejects.toMatchObject({ code: 'conflict', reason: 'approval-missing' })
       // Saving after approval asks again: the consent was to the old version.
-      world.approve(first, bob)
+      world.approve(first)
       document = await act(editor, document, { action: 'save', expectedVersion: 1, content: landing('reviewed', 'Changed after approval') })
       expect(document.status).toBe('draft')
       document = await act(editor, document, { action: 'submit', expectedVersion: 2 })
@@ -211,7 +211,7 @@ describe.skipIf(!hasDatabase)('the lifecycle (PostgreSQL)', () => {
       await expect(act(editor, document, { action: 'publish', expectedVersion: 2 })).rejects.toMatchObject({ code: 'conflict', reason: 'approval-missing' })
       document = await act(editor, document, { action: 'withdraw', expectedVersion: 2 })
       document = await act(editor, document, { action: 'submit', expectedVersion: 2 })
-      world.approve(world.approvalFor(document.id)!, bob)
+      world.approve(world.approvalFor(document.id)!)
       await expect(act(editor, document, { action: 'publish', expectedVersion: 2 })).resolves.toMatchObject({ status: 'published', publishedVersion: 2 })
     })
 
@@ -221,7 +221,7 @@ describe.skipIf(!hasDatabase)('the lifecycle (PostgreSQL)', () => {
       document = await act(editor, document, { action: 'submit', expectedVersion: 2 })
       expect(document).toMatchObject({ status: 'published', publishedVersion: 1, reviewVersion: 2 })
       await expect(act(editor, document, { action: 'publish', expectedVersion: 2 })).rejects.toMatchObject({ reason: 'approval-missing' })
-      world.approve(world.approvalFor(document.id)!, bob)
+      world.approve(world.approvalFor(document.id)!)
       await act(editor, document, { action: 'publish', expectedVersion: 2 })
       expect((await getPublishedDocument({ siteId: SITE, path: '/live' }))?.document.title).toBe('Next')
     })
