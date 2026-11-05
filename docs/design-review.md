@@ -23,6 +23,21 @@
 | The application | Export and import of a site's content; a person's data, exported or erased |
 | Its own database schema | Documents, versions, links, redirects and an event outbox |
 
+## What Publisher enforces, and what it does not
+
+Publisher is the **enforcement point**: it asks before every action and refuses when the answer is no. Authorisation is the **decision point**: it alone decides the answer.
+
+| Publisher enforces | Publisher does not decide |
+|---|---|
+| The type's declared fields, on every save | Who the caller is (`authentication`) |
+| Only allowed status changes: nothing publishes from archived, and so on | Roles, permissions, risk and step-up (`authorisation`) |
+| No lost updates: every action names the version it expects | Approval rules: how many approvers, and who (the approvals process) |
+| One document per address per site; redirects follow moves | Who may send content in, and spam or abuse (workflow, or the application) |
+| Nothing crosses sites | Files and images (`storage`, `media`) |
+| Unpublished content is never served to readers | People's names (`profile`) and site settings (`configuration`) |
+| Publishing only the exact version that was approved | How anything looks (`ui`, the application) |
+| Consent and retention for types holding personal data | |
+
 ## Finding: security decisions are made inside Publisher
 
 Publisher asks others whether someone may act, but it also makes security decisions itself. These belong in `authentication` and `authorisation` (and the IAM approvals process), not here.
@@ -62,8 +77,18 @@ Every removed function is still needed; each moves, none disappears.
 - The IAM approvals process: approver counts and self-approval must be enforced there. To check against `iam-integration`'s `CONTRACT.md`.
 - A home for moderation: the application until `workflow-service`, a candidate in the catalogue, is built. Whether to promote it is the owner's call.
 
+## Decided (5 November 2026)
+
+- Proposals 1–5 agreed. The contract version rises to 2. Moderation's home is the application until `workflow-service` is built.
+
+## Checked against other contracts
+
+- `iam-integration`: Authorisation's `authorise({ subject, permission, resource })` already answers with a step-up requirement, and its permission catalogue already carries risk (`high` needs aal2; `critical` a phishing-resistant sign-in within 15 minutes). Publisher's copy is redundant. `resolveCaller` and `decide` in ADR-0012's shape are **not offered yet**.
+- The IAM approvals process covers Identity's own changes only. **Nothing yet approves a document.** Publisher keeps its approval port; until something fills it, types needing approval cannot publish.
+- `authorisation` has no `CONTRACT.md`. Needed before Publisher relies on it.
+
 ## Decisions needed
 
-1. Agree the finding and proposals 1–5.
-2. Whether Publisher's contract version rises to 2 with this change.
-3. Moderation's home: the application for now, or promote `workflow-service` first.
+1. Composition before IAM offers `resolveCaller` and `decide`: wait, or have Publisher take `getAuthenticatedPrincipal` and `authorise` through a small adapter until it does.
+2. Document actions not built today: **duplicate** ("save as") and **delete**. Today a document is only archived, or erased with a person's data. Add both, and should delete be limited to documents never published?
+3. What fills the approval port for documents: the application for now, or `workflow-service`.
