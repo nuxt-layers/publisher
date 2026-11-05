@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `rich-text` is now followed at its `master` instead of the `v2.0.0` tag. Its installed files are unchanged since that tag.
 - Documents follow ADR-0010: added `RESOURCES.md`, `PLAN.md`, `STORAGE-REGISTER.md` and `capability.json`; the roadmap and the headless migration plan are folded into `PLAN.md`; external links moved to `RESOURCES.md`. Documentation only.
 - Moved to the `nuxt-layers` organisation.
 - The export bundle format is now `nuxt-layers.publisher` (and `nuxt-layers.publisher.person` for a person's export). Bundles exported as `nuxt4-layers.publisher` no longer import.
