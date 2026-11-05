@@ -71,6 +71,14 @@ jobs:
       - run: pnpm dev:prepare
       - run: pnpm check
       - run: pnpm build:playground
+      # ADR-0012 §4: the smallest host composes Publisher within budget, and answers.
+      - name: Check the minimal host's composition budget
+        run: python3 scripts/check_budget.py
+      - run: pnpm build:minimal-host
+      - name: Smoke-test the minimal host
+        run: node scripts/smoke_minimal_host.mjs
+        env:
+          MINIMAL_HOST_DATABASE_URL: ${{ env.PUBLISHER_TEST_DATABASE_URL }}
 
   # Gate for the `quality` status check that the master ruleset requires of
   # every repository. It passes only when every check above has passed.

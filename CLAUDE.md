@@ -9,7 +9,7 @@ Nuxt 4 foundation layer for publishing documents of types the host registers: dr
 - `pnpm install`, then `pnpm dev:prepare` for Nuxt types. Never add a `prepare`/`postinstall` script
 - `pnpm check` = `nuxt typecheck` + `vitest run`; run it after every code change. Single file: `pnpm vitest run tests/<name>.test.ts`
 - Database suites need `PUBLISHER_TEST_DATABASE_URL` (admin URL of a local, disposable PostgreSQL 16); they skip locally without it and fail in CI
-- `pnpm build:playground` proves the layer composes in a host
+- `pnpm build:playground` proves the layer composes in a host; `examples/minimal-host` is the smallest host (ADR-0012 §4): `python3 scripts/check_budget.py` keeps its composition within 50 lines, and CI builds it (`pnpm build:minimal-host`) and runs `node scripts/smoke_minimal_host.mjs` against a disposable database (`MINIMAL_HOST_DATABASE_URL`)
 - `@nuxt-layers/rich-text` follows `master` as `github:nuxt-layers/rich-text#master` (ADR-0008); the lockfile must record the `codeload.github.com` tarball, never `git@github.com`
 - Never edit a released migration in `server/database/migrations.ts`; add a new one
 - `python3 scripts/check_markdown.py` checks headings, local links, that external links appear only in `RESOURCES.md` (pinned to a tag or commit) and that `CHANGELOG.md` has none. Run it after every documentation change.

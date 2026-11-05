@@ -29,7 +29,7 @@ export default defineNitroPlugin(async () => {
 })
 ```
 
-It runs Publisher's migrations and checks the composition, failing at start-up if anything required is missing. For tests, `createPublisherFakes()` from `@nuxt-layers/publisher/testing` gives every service as `fakes.options`; it is refused outside tests.
+It runs Publisher's migrations and checks the composition, failing at start-up if anything required is missing. For tests, `createPublisherFakes()` from `@nuxt-layers/publisher/testing` gives every service as `fakes.options`; it is refused outside tests. `examples/minimal-host` in this repository is a complete, working host in 17 lines.
 
 `publisherSubjectOf`, `authorisationInputOf`, `siteIdFor` and `titleFor` are the host's mappings, described under "Host passes".
 
