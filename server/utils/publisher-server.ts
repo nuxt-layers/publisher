@@ -1,5 +1,6 @@
 import type {
   PublisherActionRequestInput,
+  PublisherAddresses,
   PublisherBacklink,
   PublisherBundle,
   PublisherContentInput,
@@ -73,6 +74,16 @@ export async function checkPublisherComposition(): Promise<void> {
 /** A new draft, version 1 (§5). Needs `edit`. */
 export async function createPublisherDocument(input: Acting & { type: string, content: PublisherContentInput }): Promise<PublisherDocument> {
   return writing.createDocument(input)
+}
+
+/** Deletes a document with every version, link and redirect (§5.6). Needs `delete`, the newest version, and no policy hold. */
+export async function deletePublisherDocument(input: Acting & { documentId: string, expectedVersion: number }): Promise<{ versions: number }> {
+  return writing.deleteDocument(input)
+}
+
+/** A document's current and former addresses on its site (§7.2). Server-only; nothing for an unpublished document. */
+export async function getPublisherAddresses(input: { siteId: string, documentId: string }): Promise<PublisherAddresses> {
+  return reading.getAddresses(input)
 }
 
 /** Any action of the state machine (§5.1): save, submit, withdraw, publish, unpublish, archive, reopen, restore. */

@@ -9,7 +9,7 @@ import { safeTextSchema, sitePathSchema } from './values'
  */
 
 /** What a permission lets its holder do to documents of one type (§10). */
-export const PUBLISHER_PERMISSION_ACTIONS = ['view-draft', 'edit', 'publish'] as const
+export const PUBLISHER_PERMISSION_ACTIONS = ['view-draft', 'edit', 'publish', 'delete'] as const
 export type PublisherPermissionAction = typeof PUBLISHER_PERMISSION_ACTIONS[number]
 
 /** A type's key: lower-case ASCII with `-`, as a segment of Configuration's keys. */

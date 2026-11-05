@@ -4,6 +4,7 @@ import type {
   PublisherApprovalState,
   PublisherAssetResolver,
   PublisherClock,
+  PublisherPolicy,
   PublisherEvent,
   PublisherEventSink,
   PublisherSubject,
@@ -37,6 +38,8 @@ export class World {
   readonly grants = new Set<string>()
   /** `identityId|permission` for which Authorisation asks the user to step up first. */
   readonly stepUp = new Set<string>()
+  /** Documents a policy holds, such as under a legal hold. */
+  readonly held = new Set<string>()
   /** The site of every question the access-decision port was asked. */
   readonly askedSites: string[] = []
   readonly approvals = new Map<string, ApprovalRecord>()
@@ -54,9 +57,9 @@ export class World {
     for (const permission of permissions) this.grants.add(`${identityId}|${permission}`)
   }
 
-  /** Every permission on a type: `view-draft`, `edit`, `publish`. */
+  /** Every permission on a type: `view-draft`, `edit`, `publish`, `delete`. */
   grantAll(identityId: string, type: string): void {
-    this.grant(identityId, ...['view-draft', 'edit', 'publish'].map(action => `publisher.${type}.${action}`))
+    this.grant(identityId, ...['view-draft', 'edit', 'publish', 'delete'].map(action => `publisher.${type}.${action}`))
   }
 
   /** A permission on one site only. */
@@ -108,6 +111,13 @@ export class World {
       const record = this.approvals.get(approvalId)
       if (!record) throw new Error('unknown approval')
       return { state: record.state, digest: record.input.digest }
+    },
+  }
+
+  readonly policy: PublisherPolicy = {
+    isHeld: async ({ documentId }) => {
+      this.check()
+      return this.held.has(documentId)
     },
   }
 

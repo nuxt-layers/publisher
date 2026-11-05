@@ -62,6 +62,15 @@ export interface PublisherApproval {
   decision(input: { approvalId: string }): Promise<{ state: PublisherApprovalState, digest: string }>
 }
 
+/**
+ * Optional (later `policy-map`): whether a policy, such as a legal hold,
+ * forbids deleting a document now. Anything but `false` refuses the delete.
+ * Without it, nothing is held.
+ */
+export interface PublisherPolicy {
+  isHeld(input: { siteId: string, documentId: string, type: string }): Promise<boolean>
+}
+
 /** Who is signed in, for an HTTP request (an h3 event, typed loosely). `null` when nobody is. */
 export interface PublisherSubjectResolver {
   resolve(event: unknown): Promise<PublisherSubject | null>

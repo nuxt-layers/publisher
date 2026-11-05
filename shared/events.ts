@@ -31,6 +31,7 @@ export const publisherEventSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...envelope, type: z.literal('publisher.document-unpublished'), data: z.strictObject({ ...document, reasonCode: z.enum(['unpublished', 'archived', 'expired', 'erased']) }) }),
   z.strictObject({ ...envelope, type: z.literal('publisher.document-reopened'), data: z.strictObject(document) }),
   z.strictObject({ ...envelope, type: z.literal('publisher.address-changed'), data: z.strictObject({ ...document, redirectRecorded: z.boolean() }) }),
+  z.strictObject({ ...envelope, type: z.literal('publisher.document-deleted'), data: z.strictObject({ ...document, versions: count }) }),
   z.strictObject({ ...envelope, type: z.literal('publisher.person-erased'), data: z.strictObject({ identityId: identifierSchema, documents: count, versions: count }) }),
   z.strictObject({ ...envelope, type: z.literal('publisher.content-imported'), data: z.strictObject({ siteId: siteIdSchema, documents: count, versions: count }) }),
   z.strictObject({ ...envelope, type: z.literal('publisher.retention-applied'), data: z.strictObject({ versions: count }) }),

@@ -1,6 +1,6 @@
 # Publisher Host Contract
 
-> **Note:** this describes the code as it is today. [PLAN.md](PLAN.md) steps 6 to 8 change it: delete and reading addresses arrive, and composition becomes one call. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](PLAN.md) steps 7 and 8 change it: composition becomes one call, and the contract stands alone. Each step updates this document.
 
 What a host needs to compose Publisher, and nothing else (ADR-0012 §6, in [Resources](RESOURCES.md)). The [longer contract](docs/contracts.md) and the code stay the source: where this page disagrees with them, this page is the bug. Publisher predates ADR-0012: there is no single call, and it does not take `resolveCaller` or `decide` yet, so today the host fills each port below itself.
 
@@ -52,6 +52,7 @@ The layer reads no other environment variable. Document types are code the host 
 | Caller | `resolveCaller(event)` | Not taken yet. `PublisherSubjectResolver.resolve(event)` → the signed-in user, `{ identityId, ... }` (a UUIDv7; anything else is passed to `decide` untouched), or `null`. `PublisherSiteResolver.resolve(event)` → the site id or `null`. Both needed for the HTTP API |
 | Access | `decide(caller, action, resource)` | `PublisherAccessDecision.decide(user, action, { siteId, type, documentId \| null })` → `{ allowed, reason? }`, where `action` is a permission such as `publisher.<type>.publish`. `reason: 'step-up'` becomes `insufficient-assurance`. Required |
 | Approval | Not a shared shape | `PublisherApproval`, for types with `lifecycle.approval`: `request({ siteId, documentId, type, version, digest, permission, requesterId, correlationId })` → `{ approvalId }`; `decision({ approvalId })` → `{ state, digest }`. Publishes only on `approved` for that exact digest; who approves is the approvals process's rule |
+| Policy | Not a shared shape | Optional `PublisherPolicy` (later `policy-map`): `isHeld({ siteId, documentId, type })` → `boolean`. Anything but `false` refuses a delete (`held`). Without it, nothing is held |
 | Mail | `send(...)` | None: the layer sends nothing |
 | Events | The outbox, drained by `relay()` | `relayPublisherOutbox({ limit? })` → `PublisherEventSink.publish(events)`, at least once, in order |
 | Scheduled work | `tasks: { name, every, run }[]` | `runPublisherMaintenance()` every minute (scheduled publishing and archiving, retention); `relayPublisherOutbox()` every minute. Both idempotent; never endpoints |
@@ -64,20 +65,22 @@ Every port rejects on failure; the layer then answers `unavailable`, never a par
 
 | Side | Function | Does |
 |---|---|---|
-| Client | `usePublisher()` | Calls the HTTP API: `resolve(path, preview)`, `list(query)`, `types()`, `documents(query)`, `document(id, version?)`, `history(id)`, `backlinks(id)`, `create(type, content)`, `act(id, action)`. Decides nothing; `publisherErrorOf(error)` reads `{ code, reason? }` |
+| Client | `usePublisher()` | Calls the HTTP API: `resolve(path, preview)`, `list(query)`, `types()`, `documents(query)`, `document(id, version?)`, `history(id)`, `backlinks(id)`, `create(type, content)`, `act(id, action)`, `remove(id, expectedVersion)`. Decides nothing; `publisherErrorOf(error)` reads `{ code, reason? }` |
 | Server | `createPublisherDocument({ siteId, subject, correlationId, type, content })` | A draft at version 1 |
 | Server | `transitionPublisherDocument({ siteId, subject, correlationId, documentId, request })` | One action: `save`, `submit`, `withdraw`, `publish` (`publishAt?`, `unpublishAt?`), `unpublish`, `archive` (both with `acknowledgedLinks`), `reopen`, `restore` (`version`); each with `expectedVersion` |
+| Server | `deletePublisherDocument({ siteId, subject, correlationId, documentId, expectedVersion })` | Deletes the document with every version, link, history and redirect; `{ versions }`. Needs `delete`; refused while held |
 | Server | `resolvePublisherPath({ siteId, path, viewer?, preview? })` | `{ kind: 'document', rendered }`, `{ kind: 'redirect', to, status: 301 }` or `{ kind: 'none' }` |
 | Server | `getPublishedDocument`, `listPublishedDocuments`, `getPublisherFeed`, `listPublisherSitemapEntries` | One document (by path or id), a listing (up to 100, equality filters), RSS or Atom, sitemap paths |
+| Server only | `getPublisherAddresses({ siteId, documentId })` | `{ current, former[] }` for a published document, for `seo` and search; nothing otherwise |
 | Server | `getPublisherDocument`, `listPublisherDocuments`, `listPublisherHistory`, `listPublisherBacklinks` | Administration reads under `view-draft` (the queue under `moderate`) |
 | Server only | `exportPublisherContent`, `importPublisherContent` | A site's bundle out and in; import is also how a host seeds content |
-| Server only | `exportPublisherPersonData({ identityId })`, `erasePublisherPerson({ identityId, correlationId })` | For iam-integration's data-subject requests; every site and version |
+| Server only | `exportPublisherPersonData({ identityId })`, `erasePublisherPerson({ identityId, correlationId })` | When a person asks for their data or its erasure (the host decides when) |
 
-The HTTP API, under `/api/publisher`: `GET /resolve`, `GET /documents`, `GET /feeds/{type}/rss` and `/atom` for anyone; `GET /admin/types`, `GET`/`POST /admin/documents`, `GET /admin/documents/{id}`, `POST /admin/documents/{id}/actions`, `GET .../history`, `.../backlinks`, `.../preview` for the signed in.
+The HTTP API, under `/api/publisher`: `GET /resolve`, `GET /documents`, `GET /feeds/{type}/rss` and `/atom` for anyone; `GET /admin/types`, `GET`/`POST /admin/documents`, `GET /admin/documents/{id}`, `POST /admin/documents/{id}/actions`, `DELETE /admin/documents/{id}` (`{ expectedVersion }`), `GET .../history`, `.../backlinks`, `.../preview` for the signed in.
 
 **The editor slot.** `GET /admin/types` (`usePublisher().types()`) answers each type the subject may touch with its `label`, `address`, `schema` (the fields as JSON Schema) and `richTextFields` (`{ path, profile, max }`), and what the subject `may` do. `content-editor` plugs in there: it builds the form from that answer and saves through `create` and `act`. Plain form controls work too: the server checks every save.
 
-Errors are `{ code, reason? }`: `unauthenticated` 401, `forbidden` 403, `not-found` 404, `insufficient-assurance` 403, `validation-failed` 400 (a content problem such as `not-in-profile`, `image-without-alt`, `unknown-type`), `conflict` 409 (`version-stale`, `invalid-transition`, `address-taken`, `review-required`, `approval-missing`, `consent-missing`, `scheduling-disabled`, `still-linked`, `erased`), `unavailable` 503. A server function throws `PublisherFailure` with the same `code` and `reason`.
+Errors are `{ code, reason? }`: `unauthenticated` 401, `forbidden` 403, `not-found` 404, `insufficient-assurance` 403, `validation-failed` 400 (a content problem such as `not-in-profile`, `image-without-alt`, `unknown-type`), `conflict` 409 (`version-stale`, `invalid-transition`, `address-taken`, `review-required`, `approval-missing`, `consent-missing`, `scheduling-disabled`, `still-linked`, `held`, `erased`), `unavailable` 503. A server function throws `PublisherFailure` with the same `code` and `reason`.
 
 ## Permissions
 
@@ -88,6 +91,7 @@ Four per registered type, from `publisherPermissions(usePublisherRegistry())`, f
 | `publisher.<type>.view-draft` | Drafts, history, backlinks, administration lists, previews |
 | `publisher.<type>.edit` | Create, save, submit, withdraw, reopen, restore |
 | `publisher.<type>.publish` | Publish, schedule, unpublish, archive |
+| `publisher.<type>.delete` | Delete a document with every version |
 
 ## Screens
 

@@ -53,7 +53,7 @@ const CONTRACT_EXPORTS = [
   'SITE_ID_PATTERN', 'SLUG_PATTERN', 'TYPE_KEY_PATTERN', 'UUID_PATTERN', 'UUID_V7_PATTERN', 'addressDateSchema',
   'addressRuleSchema', 'assetIdSchema', 'buildPublisherRegistry', 'canonicalJson', 'codeSchema', 'correlationIdSchema',
   'definePublisherDocumentType', 'digestSchema', 'httpsUrlSchema', 'identifierSchema', 'instantSchema', 'localeSchema',
-  'publisherActionRequestSchema', 'publisherBacklinkSchema', 'publisherBundleDocumentSchema', 'publisherBundleSchema',
+  'publisherActionRequestSchema', 'publisherAddressesSchema', 'publisherBacklinkSchema', 'publisherBundleDocumentSchema', 'publisherBundleSchema',
   'publisherConsentSchema', 'publisherContentSchema', 'publisherDocumentSchema', 'publisherDraftSchema', 'publisherEventSchema', 'publisherHeadSchema',
   'publisherListingQuerySchema', 'publisherListingSchema', 'publisherPermission', 'publisherPermissions', 'publisherPersonExportSchema', 'publisherRenderedSchema',
   'publisherResolutionSchema', 'publisherResolvedLinksSchema', 'publisherSitemapEntrySchema', 'publisherTypeDeclarationSchema', 'publisherVersionSchema', 'reasonCodeSchema',
@@ -166,14 +166,15 @@ describe('registration', () => {
     expect(contracts.buildPublisherRegistry(EXAMPLE_DOCUMENT_TYPES).size).toBe(EXAMPLE_DOCUMENT_TYPES.length)
   })
 
-  it('derives three permissions per type; Authorisation\'s catalogue sets their risk', () => {
+  it('derives four permissions per type; Authorisation\'s catalogue sets their risk', () => {
     expect(contracts.publisherPermission('landing', 'view-draft')).toBe('publisher.landing.view-draft')
     expect(contracts.publisherPermissions(registry())).toEqual(expect.arrayContaining([
       { permission: 'publisher.landing.publish', type: 'landing', action: 'publish' },
       { permission: 'publisher.appraisal.view-draft', type: 'appraisal', action: 'view-draft' },
       { permission: 'publisher.bulletin.edit', type: 'bulletin', action: 'edit' },
+      { permission: 'publisher.bulletin.delete', type: 'bulletin', action: 'delete' },
     ]))
-    expect(contracts.publisherPermissions(registry())).toHaveLength(9)
+    expect(contracts.publisherPermissions(registry())).toHaveLength(12)
   })
 
   it('fails closed on a duplicate type', () => {

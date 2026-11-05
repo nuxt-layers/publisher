@@ -37,6 +37,7 @@ export const PUBLISHER_CONFLICT_REASONS = [
   'consent-missing',
   'scheduling-disabled',
   'still-linked',
+  'held',
   'erased',
 ] as const
 

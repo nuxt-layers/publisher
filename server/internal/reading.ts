@@ -1,5 +1,6 @@
 import { parseRichText } from '@nuxt-layers/rich-text'
 import type {
+  PublisherAddresses,
   PublisherBacklink,
   PublisherBundle,
   PublisherBundleDocument,
@@ -508,3 +509,19 @@ export async function erasePerson(input: { identityId: string, correlationId: st
   })
 }
 
+
+/**
+ * A document's current and former addresses on its site (§7.2), for `seo`
+ * and search. Server-only. Nothing for an unknown or unpublished document,
+ * whose addresses are not public.
+ */
+export async function getAddresses(input: { siteId: string, documentId: string }): Promise<PublisherAddresses> {
+  const siteId = siteOf(input.siteId)
+  if (!identifierSchema.safeParse(input.documentId).success) return { current: null, former: [] }
+  return withClient(async (client) => {
+    const row = await loadDocument(client, siteId, input.documentId)
+    if (!row || row.status !== 'published' || row.path === null) return { current: null, former: [] }
+    const { rows } = await client.query<{ path: string }>(`select "path" from ${schemaName()}."redirect" where "site_id" = $1 and "document_id" = $2 order by "path"`, [siteId, row.id])
+    return { current: row.path, former: rows.map(redirect => redirect.path) }
+  })
+}

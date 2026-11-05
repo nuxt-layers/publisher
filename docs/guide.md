@@ -2,7 +2,7 @@
 
 > **In short:** register your document types, fill the publisher's ports from the IAM members and your host, then call its services. The publisher stores, versions, approves, publishes and serves documents. How they look is up to you.
 
-> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 6 to 8 change it: delete and reading addresses arrive, and composition becomes one call. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 7 and 8 change it: composition becomes one call, and the contract stands alone. Each step updates this document.
 
 The publisher is headless (ADR-0009 and ADR-0011, in [Resources](../RESOURCES.md)). The [contract](contracts.md) is the full reference.
 

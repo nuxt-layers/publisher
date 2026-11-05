@@ -1,6 +1,6 @@
 # Threat Model
 
-> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 6 to 8 change it: delete and reading addresses arrive, and composition becomes one call. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 7 and 8 change it: composition becomes one call, and the contract stands alone. Each step updates this document.
 
 The publisher decides what a site says in public (a **site** is one publishing space, belonging to one owner within a **tenant**: see the README's Terms), so its first duty is that nothing is public unless it was meant to be: no draft, no unapproved version, no unmoderated submission, and no markup an editor or a submitter smuggled in. This register follows Security §16, data stores, and ADR-0006 (both in [Resources](../RESOURCES.md)). Status is the state of the implementation; the evidence is the test that proves each control.
 
@@ -46,6 +46,7 @@ The publisher decides what a site says in public (a **site** is one publishing s
 | T19 | Injection through SQL, feed XML or headers | Parameterised SQL only; every row parsed with the contract's schemas before it leaves the layer; feed text escaped; origins parsed | reading "escaping every title"; contracts | Implemented |
 | T20 | An import bypasses the checks a save makes | Imports check every version against its type, all or nothing, and only into documents that do not exist | `tests/bundle.test.ts` | Implemented |
 | T21 | One site's drafts, documents, links or administration reached from another (tenant isolation) | Every query names the site; the endpoints take it only from the host's site resolver; ports are told the site; addresses, redirects and `doc:` links resolve within a site; a document on another site is as missing as none | `tests/sites.test.ts`; http "serves and administers each site only on its own hosts" | Implemented |
+| T22 | A document deleted by someone without the right, by mistake, or while a legal hold applies | Delete needs `delete` through `decide`, the newest version as `expectedVersion`, and no hold from the policy port (anything but `false` refuses); it is one transaction and writes `publisher.document-deleted` | `tests/delete.test.ts` | Implemented |
 
 ## 4. Gaps and risk treatments
 

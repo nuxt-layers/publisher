@@ -72,6 +72,7 @@ export {
 } from './types'
 
 export type {
+  PublisherAddresses,
   PublisherBacklink,
   PublisherConsent,
   PublisherContent,
@@ -83,6 +84,7 @@ export type {
 } from './documents'
 export {
   PUBLISHER_STATUSES,
+  publisherAddressesSchema,
   publisherBacklinkSchema,
   publisherConsentSchema,
   publisherContentSchema,
@@ -138,6 +140,7 @@ export type {
   PublisherAccessDecision,
   PublisherResource,
   PublisherApproval,
+  PublisherPolicy,
   PublisherApprovalState,
   PublisherAssetResolver,
   PublisherClock,

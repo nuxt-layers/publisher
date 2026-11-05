@@ -54,5 +54,6 @@ export function usePublisher() {
     backlinks: (documentId: string) => request<PublisherBacklink[]>(`${admin}/${documentId}/backlinks`),
     create: (type: string, content: PublisherContentInput) => $fetch<PublisherDocument>(admin, { method: 'POST', body: { type, content } }),
     act: (documentId: string, action: PublisherActionRequestInput) => $fetch<PublisherDocument>(`${admin}/${documentId}/actions`, { method: 'POST', body: action }),
+    remove: (documentId: string, expectedVersion: number) => $fetch<{ versions: number }>(`${admin}/${documentId}`, { method: 'DELETE', body: { expectedVersion } }),
   }
 }

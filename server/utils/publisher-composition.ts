@@ -2,6 +2,7 @@ import type {
   PublisherAccessDecision,
   PublisherApproval,
   PublisherAssetResolver,
+  PublisherPolicy,
   PublisherClock,
   PublisherDatabase,
   PublisherEventSink,
@@ -29,6 +30,7 @@ let subjectResolver: PublisherSubjectResolver | null = null
 let siteResolver: PublisherSiteResolver | null = null
 let eventSink: PublisherEventSink | null = null
 let assets: PublisherAssetResolver | null = null
+let policy: PublisherPolicy | null = null
 let titleTemplate: PublisherTitleTemplate | null = null
 let clock: PublisherClock | null = null
 
@@ -91,6 +93,12 @@ export function providePublisherAssetResolver(next: PublisherAssetResolver): voi
   assets = next
 }
 
+/** Optional (later `policy-map`): policy holds, such as a legal hold. Without it, nothing is held. */
+export function providePublisherPolicy(next: PublisherPolicy): void {
+  needs(next, ['isHeld'], 'providePublisherPolicy expects an isHeld(input) function.')
+  policy = next
+}
+
 /** Optional: the host's title template. Without it, a document's title alone. */
 export function providePublisherTitleTemplate(next: PublisherTitleTemplate): void {
   needs(next, ['format'], 'providePublisherTitleTemplate expects a format(input) function.')
@@ -118,6 +126,8 @@ export const usePublisherSiteResolver = () => required(siteResolver, 'PublisherS
 export const usePublisherEventSink = () => required(eventSink, 'PublisherEventSink')
 /** Optional: `null` without it, and images are refused. */
 export const usePublisherAssetResolver = (): PublisherAssetResolver | null => assets
+/** Optional: `null` without it, and nothing is held. */
+export const usePublisherPolicy = (): PublisherPolicy | null => policy
 /** Optional: `null` without it, and titles stand alone. */
 export const usePublisherTitleTemplate = (): PublisherTitleTemplate | null => titleTemplate
 export const usePublisherClock = (): PublisherClock => clock ?? systemClock
@@ -132,6 +142,7 @@ export function clearPublisherComposition(): void {
   siteResolver = null
   eventSink = null
   assets = null
+  policy = null
   titleTemplate = null
   clock = null
 }
