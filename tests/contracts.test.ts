@@ -166,7 +166,7 @@ describe('registration', () => {
     expect(contracts.buildPublisherRegistry(EXAMPLE_DOCUMENT_TYPES).size).toBe(EXAMPLE_DOCUMENT_TYPES.length)
   })
 
-  it('derives four permissions per type; Authorisation's catalogue sets their risk', () => {
+  it('derives four permissions per type; Authorisation\'s catalogue sets their risk', () => {
     expect(contracts.publisherPermission('landing', 'view-draft')).toBe('publisher.landing.view-draft')
     expect(contracts.publisherPermissions(registry())).toEqual(expect.arrayContaining([
       { permission: 'publisher.landing.publish', type: 'landing', action: 'publish' },
