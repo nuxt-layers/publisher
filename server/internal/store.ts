@@ -27,7 +27,7 @@ import {
   usePublisherClock,
   usePublisherDatabase,
   usePublisherRegistry,
-} from '../utils/publisher-composition'
+} from './composition'
 import { uuidv7 } from './ids'
 
 /**

@@ -12,13 +12,15 @@
   "exports": {
     ".": "./nuxt.config.ts",
     "./contracts": "./shared/contracts.ts",
-    "./examples": "./examples/index.ts"
+    "./examples": "./examples/index.ts",
+    "./testing": "./testing/index.ts"
   },
   "files": [
     "app",
     "examples",
     "server",
     "shared",
+    "testing",
     "nuxt.config.ts",
     "README.md",
     "LICENSE"

@@ -16,18 +16,8 @@ import type {
   PublisherSubject,
   PublisherVersion,
 } from '../../shared/contracts'
-import { PublisherCompositionError } from '../../shared/contracts'
-import { runPublisherMigrations } from '../database/migrations'
 import * as reading from '../internal/reading'
-import { guarded, withClient } from '../internal/store'
 import * as writing from '../internal/writing'
-import {
-  usePublisherAccessDecision,
-  usePublisherApproval,
-  usePublisherDatabase,
-  usePublisherEventSink,
-  usePublisherRegistry,
-} from './publisher-composition'
 
 /**
  * The publisher's server functions (docs/contracts.md §13), auto-imported
@@ -49,26 +39,6 @@ interface Viewing {
   viewer?: PublisherSubject | null
   /** Ask for the newest version; needs the type's `view-draft`, else answers as missing. */
   preview?: boolean
-}
-
-/** Applies append-only migrations through the migration pool. */
-export async function migratePublisherDatabase(): Promise<string[]> {
-  const database = usePublisherDatabase()
-  return guarded(() => runPublisherMigrations(database.migrationPool ?? database.pool, database.schema, database.runtimeRole))
-}
-
-/**
- * Checks the composition at start-up: every required port supplied, and no
- * stored document of a type the host has not registered. Throws
- * `PublisherCompositionError`; a host calls it after migrating.
- */
-export async function checkPublisherComposition(): Promise<void> {
-  usePublisherDatabase()
-  usePublisherAccessDecision()
-  usePublisherEventSink()
-  if ([...usePublisherRegistry().values()].some(declaration => declaration.lifecycle.approval)) usePublisherApproval()
-  await withClient(async () => {})
-  if (usePublisherRegistry().size === 0) throw new PublisherCompositionError('PublisherDocumentTypes', 'No document type is registered.')
 }
 
 /** A new draft, version 1 (§5). Needs `edit`. */

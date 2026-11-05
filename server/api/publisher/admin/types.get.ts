@@ -1,7 +1,7 @@
 import { PUBLISHER_PERMISSION_ACTIONS } from '../../../../shared/contracts'
 import { adminSite, publisherHandler, requireSubject } from '../../../internal/http'
 import { allows } from '../../../internal/store'
-import { usePublisherRegistry } from '../../../utils/publisher-composition'
+import { usePublisherRegistry } from '../../../internal/composition'
 
 /**
  * GET /api/publisher/admin/types — the registered types the subject holds

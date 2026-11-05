@@ -1,6 +1,6 @@
 # Publisher Contract (version 1)
 
-> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 7 and 8 change it: composition becomes one call, and the contract stands alone. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) step 8 changes it: the contract stands alone. Each step updates this document.
 
 `@nuxt-layers/publisher/contracts` is the only supported import path for this capability's types and pure helpers. It imports nothing but `zod`: no Nuxt, Vue, h3, server code, driver or other `@nuxt-layers/*` package.
 
@@ -31,7 +31,7 @@ A type may declare that its documents hold a person's words or identity (§9). S
 
 ### 3.1 Declarations
 
-Registered once at start-up with `providePublisherDocumentTypes(declarations)`. Each declaration is a strict object, checked against the meta-schema (`publisherTypeDeclarationSchema`) and then by `buildPublisherRegistry`:
+Registered once at start-up as `composePublisher`'s `types`. Each declaration is a strict object, checked against the meta-schema (`publisherTypeDeclarationSchema`) and then by `buildPublisherRegistry`:
 
 | Field | Meaning |
 |---|---|
@@ -53,7 +53,7 @@ A document of an addressed type carries a `slug` (up to 8 segments of `[a-z0-9]`
 
 - The layer registers no type, and its own source names none (`tests/contracts.test.ts` searches it). Reference declarations are exported from `@nuxt-layers/publisher/examples` as examples only.
 - Adding a type is a registration, never a change to the layer: the same code stores, versions, reviews, publishes, lists, feeds and exports every type (`tests/lifecycle.test.ts` proves it with types defined only in the tests).
-- A document of a type the host does not register is refused (`validation-failed`, `unknown-type`). If the database holds documents of a type the host no longer registers, `checkPublisherComposition()` fails at start-up and every server function fails closed (`unavailable`) rather than serve them as something else.
+- A document of a type the host does not register is refused (`validation-failed`, `unknown-type`). If the database holds documents of a type the host no longer registers, `composePublisher` fails at start-up and every server function fails closed (`unavailable`) rather than serve them as something else.
 - Adding a field, or making a field optional applies to new versions; stored versions keep the content they were saved with and are checked again only when they are published or restored.
 
 ### 3.4 Sites
@@ -105,7 +105,7 @@ A type with `lifecycle.approval` never publishes without the approval port's con
 - `submit` asks `approval.request` about the newest version, with its **digest** (SHA-256 of the canonical JSON of the document's id, type, version and content), the publish permission and the requester. Who may approve, how many must, and that nobody approves their own request are the approvals process's rules.
 - `publish` asks `approval.decision` and publishes only when the answer is `approved`, bound to the same digest as the version being published. Otherwise `conflict`, `approval-missing`; publishing before submitting is `review-required`.
 - Saving after submitting asks again: the consent was to the old version's digest.
-- Without the approval port, every type with `approval` fails closed (`unavailable`), and so does `checkPublisherComposition()`.
+- Without the approval port, every type with `approval` fails closed (`unavailable`), and so does `composePublisher` at start-up.
 
 ### 5.3 Moderation
 
@@ -215,21 +215,23 @@ Derived for each registered type (`publisherPermissions(registry)`), for the hos
 
 ## 11. Ports
 
+`composePublisher(options)` fills every port in one call (ADR-0012), from `options` in the shapes below (`PublisherOptions`): `pool`, `types`, `resolveCaller` and `decide` are required; the rest are optional, with the defaults shown. `createPublisherFakes()` from `@nuxt-layers/publisher/testing` gives every one for tests, and is refused outside them.
+
 | Port | Required | Supplied from | Purpose |
 |---|---|---|---|
-| Document types (`providePublisherDocumentTypes`) | Yes | Host | The registered types (§3) |
+| Document types (`types`) | Yes | Host | The registered types (§3) |
 | `PublisherDatabase` | Yes | Host | PostgreSQL pool (runtime role), schema (default `publisher`), and optionally the migration pool and runtime role, under ADR-0002 and ADR-0006 |
 | `PublisherSubjectResolver` | For the endpoints | Authentication, through the host | The signed-in user (`identityId`, plus anything else, passed to the access decision untouched), or `null` |
 | `PublisherSiteResolver` | For the endpoints | Host, e.g. from Configuration's tenant by host name | The request's site (§3.4), or `null`; a host with one site answers a constant |
 | `PublisherAccessDecision` | Yes | Authorisation, through the host | `decide(user, action, { siteId, type, documentId })` → `{ allowed, reason? }`: whether the user may take the action (a permission, §10) now. Risk and step-up are its own |
 | `PublisherApproval` | For types with `approval` | The host (later `workflow`) | Asking for and reading consent to publish a version (§5.2) |
 | `PublisherClock` | No: the system clock without it | Host (the suite's one clock) | Schedules and retention |
-| `PublisherEventSink` | For the relay | Host | Where `relayPublisherOutbox` sends events (§12) |
+| `PublisherEventSink` (`publish`) | No: events stay in the outbox | Host (later `events-queue`) | Where the relay task sends events (§12) |
 | `PublisherAssetResolver` | No: images are refused without it | The host's asset store | Each `asset:` id's address, or `null` |
 | `PublisherTitleTemplate` | No: a document's title alone | Host, e.g. from Configuration's `seo.title-template` | Page and feed titles |
 | `PublisherPolicy` | No: nothing is held without it | Host (later `policy-map`) | `isHeld({ siteId, documentId, type })` → `boolean`: whether a policy such as a legal hold forbids deleting the document now. Anything but `false` refuses |
 
-Required ports fail closed: a missing one is `PublisherCompositionError`, and a failing one `unavailable`, recording nothing. There is no in-memory or file store and no default type. `checkPublisherComposition()` checks every required port and the stored types at start-up.
+Required ports fail closed: a missing one is `PublisherCompositionError`, and a failing one `unavailable`, recording nothing. There is no in-memory or file store and no default type. `composePublisher` checks every required port and the stored types at start-up.
 
 ## 12. Events
 
@@ -259,8 +261,7 @@ Auto-imported in the host's server code. The user is always the signed-in princi
 
 | Function | Does |
 |---|---|
-| `migratePublisherDatabase()` | Applies append-only migrations through the migration pool, once, even when instances race |
-| `checkPublisherComposition()` | §11, §3.3. A host calls it at start-up after migrating |
+| `composePublisher(options)` | §11. The one call: fills every port from `options`, applies append-only migrations through the migration pool (once, even when instances race), checks the composition (§3.3), and answers `{ tasks }` for the host's scheduler |
 | `createPublisherDocument({ subject, type, content, correlationId })` | §5.1 |
 | `transitionPublisherDocument({ subject, documentId, request, correlationId })` | Any action of §5.1 (`publisherActionRequestSchema`) |
 | `deletePublisherDocument({ subject, documentId, expectedVersion, correlationId })` | §5.6 |

@@ -32,7 +32,7 @@ import {
   siteIdSchema,
   sitePathSchema,
 } from '../../shared/contracts'
-import { usePublisherAssetResolver, usePublisherDatabase, usePublisherEventSink, usePublisherRegistry, usePublisherTitleTemplate } from '../utils/publisher-composition'
+import { usePublisherAssetResolver, usePublisherDatabase, usePublisherEventSink, usePublisherRegistry, usePublisherTitleTemplate } from './composition'
 import type { Client, DocumentRow, VersionRow } from './store'
 import {
   allows,

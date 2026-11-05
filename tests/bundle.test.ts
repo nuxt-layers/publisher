@@ -2,16 +2,16 @@ import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { PublisherBundle } from '../shared/contracts'
 import { publisherBundleSchema } from '../shared/contracts'
-import { clearPublisherComposition, providePublisherDatabase, providePublisherDocumentTypes } from '../server/utils/publisher-composition'
+import { clearPublisherComposition, providePublisherDatabase, providePublisherDocumentTypes } from '../server/internal/composition'
 import {
   createPublisherDocument,
   exportPublisherContent,
   getPublishedDocument,
   importPublisherContent,
-  migratePublisherDatabase,
   resolvePublisherPath,
   transitionPublisherDocument,
 } from '../server/utils/publisher-server'
+import { migratePublisherDatabase } from '../server/internal/startup'
 import { createTestDatabase, hasDatabase, requireDatabaseInCi } from './support/database'
 import { Harness } from './support/publisher'
 import { appraisal, bulletin, landing, TEST_TYPES } from './support/types'

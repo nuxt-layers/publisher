@@ -4,7 +4,7 @@ import { createError, defineEventHandler, getQuery, getRequestHeader, getRequest
 import type { z } from 'zod'
 import type { PublisherErrorCode, PublisherSubject } from '../../shared/contracts'
 import { PUBLISHER_ERROR_STATUS, PublisherCompositionError, PublisherFailure, siteIdSchema, subjectSchema, UUID_PATTERN, UUID_V7_PATTERN } from '../../shared/contracts'
-import { usePublisherSiteResolver, usePublisherSubjectResolver } from '../utils/publisher-composition'
+import { usePublisherSiteResolver, usePublisherSubjectResolver } from './composition'
 
 /**
  * PRIVATE. The HTTP boundary of `/api/publisher/*` (docs/contracts.md §14).

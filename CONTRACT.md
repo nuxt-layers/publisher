@@ -1,6 +1,6 @@
 # Publisher Host Contract
 
-> **Note:** this describes the code as it is today. [PLAN.md](PLAN.md) steps 7 and 8 change it: composition becomes one call, and the contract stands alone. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](PLAN.md) step 8 changes it: the contract stands alone. Each step updates this document.
 
 What a host needs to compose Publisher, and nothing else (ADR-0012 §6, in [Resources](RESOURCES.md)). The [longer contract](docs/contracts.md) and the code stay the source: where this page disagrees with them, this page is the bug. Publisher predates ADR-0012: there is no single call, and it does not take `resolveCaller` or `decide` yet, so today the host fills each port below itself.
 
@@ -10,25 +10,26 @@ What a host needs to compose Publisher, and nothing else (ADR-0012 §6, in [Reso
 "@nuxt-layers/publisher": "github:nuxt-layers/publisher#master"
 ```
 
-`extends: ['@nuxt-layers/publisher']` in `nuxt.config.ts`; install with `--frozen-lockfile`. One Nitro plugin (the `providePublisher*` and server functions are auto-imported):
+`extends: ['@nuxt-layers/publisher']` in `nuxt.config.ts`. One server plugin, one call (`composePublisher` and the server functions are auto-imported):
 
 ```ts
 import { postsType } from '../content-types' // the host's own declarations
 
 export default defineNitroPlugin(async () => {
-  providePublisherDatabase({ dialect: 'postgres', pool, migrationPool, runtimeRole: 'publisher_runtime' })
-  providePublisherDocumentTypes([postsType])
-  providePublisherSiteResolver({ resolve: async event => siteIdFor(event) }) // a constant for one site
-  providePublisherSubjectResolver({ resolve: async event => publisherSubjectOf(await getAuthenticatedPrincipal(event)) })
-  providePublisherAccessDecision({ allows: async input => (await authorise(authorisationInputOf(input))).allowed })
-  providePublisherApproval({ request: input => approvals.request(input), decision: input => approvals.decision(input) }) // only with `approval` types
-  providePublisherEventSink({ publish: events => bus.publish(events) })
-  providePublisherAssetResolver({ resolve: input => assets.addresses(input) }) // optional
-  providePublisherTitleTemplate({ format: input => titleFor(input) }) // optional
-  await migratePublisherDatabase()
-  await checkPublisherComposition() // fails at start-up if a required port or a stored type is missing
+  const { tasks } = await composePublisher({
+    pool, // a pg pool; optionally migrationPool, schema, runtimeRole
+    types: [postsType],
+    resolveCaller, // ADR-0012: event → { tenantId, subjectId | null, ... }
+    resolveSite: event => siteIdFor(event), // a constant for one site; needed for the HTTP API
+    decide, // ADR-0012: (user, action, resource) → { allowed, reason? }
+    approval, // only with `approval` types
+    publish: events => bus.publish(events), // optional: without it events stay in the outbox
+  })
+  scheduler.add(tasks) // maintenance every minute; the event relay when `publish` is given
 })
 ```
+
+It runs Publisher's migrations and checks the composition, failing at start-up if anything required is missing. For tests, `createPublisherFakes()` from `@nuxt-layers/publisher/testing` gives every service as `fakes.options`; it is refused outside tests.
 
 `publisherSubjectOf`, `authorisationInputOf`, `siteIdFor` and `titleFor` are the host's mappings, described under "Host passes".
 
@@ -47,16 +48,16 @@ The layer reads no other environment variable. Document types are code the host 
 
 | Need | Shared shape (ADR-0012 §2) | Today |
 |---|---|---|
-| Database | A `pg` pool; the layer owns its schema | `providePublisherDatabase({ dialect: 'postgres', pool, schema?, migrationPool?, runtimeRole? })`; any pool with `query` and `connect` |
-| Document types | Not a shared shape | `providePublisherDocumentTypes(declarations)`, each from `definePublisherDocumentType`, with `type`, `label`, `fields` (a `z.strictObject`, every string and array bounded), `address`, `listing`, `lifecycle`, `personalData`. No default type |
-| Caller | `resolveCaller(event)` | Not taken yet. `PublisherSubjectResolver.resolve(event)` → the signed-in user, `{ identityId, ... }` (a UUIDv7; anything else is passed to `decide` untouched), or `null`. `PublisherSiteResolver.resolve(event)` → the site id or `null`. Both needed for the HTTP API |
-| Access | `decide(caller, action, resource)` | `PublisherAccessDecision.decide(user, action, { siteId, type, documentId \| null })` → `{ allowed, reason? }`, where `action` is a permission such as `publisher.<type>.publish`. `reason: 'step-up'` becomes `insufficient-assurance`. Required |
+| Database | A `pg` pool; the layer owns its schema | `pool`, and optionally `migrationPool`, `schema` (default `publisher`) and `runtimeRole`. Migrations run inside `composePublisher` |
+| Document types | Not a shared shape | `types`, each from `definePublisherDocumentType`, with `type`, `label`, `fields` (a `z.strictObject`, every string and array bounded), `address`, `listing`, `lifecycle`, `personalData`. No default type |
+| Caller | `resolveCaller(event)` | `resolveCaller(event)` → `{ tenantId, subjectId \| null, ... }`; `null`, or a `null` subject, is nobody signed in. Publisher records `subjectId` (a UUIDv7) as who acted and passes the rest to `decide` untouched. `resolveSite(event)` → the site id or `null`, needed for the HTTP API |
+| Access | `decide(caller, action, resource)` | `decide(user, action, { siteId, type, documentId \| null })` → `{ allowed, reason? }`, where `action` is a permission such as `publisher.<type>.publish`. `reason: 'step-up'` becomes `insufficient-assurance`. Required |
 | Approval | Not a shared shape | `PublisherApproval`, for types with `lifecycle.approval`: `request({ siteId, documentId, type, version, digest, permission, requesterId, correlationId })` → `{ approvalId }`; `decision({ approvalId })` → `{ state, digest }`. Publishes only on `approved` for that exact digest; who approves is the approvals process's rule |
-| Policy | Not a shared shape | Optional `PublisherPolicy` (later `policy-map`): `isHeld({ siteId, documentId, type })` → `boolean`. Anything but `false` refuses a delete (`held`). Without it, nothing is held |
+| Policy | Not a shared shape | Optional `policy`, a `PublisherPolicy` (later `policy-map`): `isHeld({ siteId, documentId, type })` → `boolean`. Anything but `false` refuses a delete (`held`). Without it, nothing is held |
 | Mail | `send(...)` | None: the layer sends nothing |
-| Events | The outbox, drained by `relay()` | `relayPublisherOutbox({ limit? })` → `PublisherEventSink.publish(events)`, at least once, in order |
-| Scheduled work | `tasks: { name, every, run }[]` | `runPublisherMaintenance()` every minute (scheduled publishing and archiving, retention); `relayPublisherOutbox()` every minute. Both idempotent; never endpoints |
-| Clock | `now()`, system clock by default | `providePublisherClock({ now })`, or none |
+| Events | The outbox, drained by `relay()` | Optional `publish(events)`: the relay task sends events to it, at least once, in order. Without it, events stay in the outbox |
+| Scheduled work | `tasks: { name, every, run }[]` | `composePublisher` answers `tasks`: `publisher-maintenance` every minute (scheduled publishing and archiving, retention), and `publisher-relay` every minute when `publish` is given. Both idempotent; never endpoints |
+| Clock | `now()`, system clock by default | Optional `now()` → a `Date` or an ISO 8601 UTC string; anything else fails closed as `unavailable` |
 | Assets, titles | Not shared shapes | Optional. `PublisherAssetResolver.resolve({ siteId, assetIds })` → each id's `{ url, width?, height? }` or `null`; without it images are refused. `PublisherTitleTemplate.format({ siteId, title, type, locale })`, e.g. Configuration's `seo.title-template`; without it titles stand alone |
 
 Every port rejects on failure; the layer then answers `unavailable`, never a partial answer.
@@ -120,6 +121,6 @@ A screen the host draws must still:
 - Saving after submitting asks for approval again: consent binds to the version's digest.
 - Content from people who are not editors is the host's to take in (later `workflow`): it creates an ordinary draft as a service user, and an editor publishes it.
 - Personal-data types need the consent field before publishing (`consent-missing`); their subject and consent fields never reach a reader.
-- A missing required port throws `PublisherCompositionError` at first use; nothing falls back, and there is no in-memory store. Stored documents of a type the host stopped registering fail `checkPublisherComposition()`.
+- A missing required port throws `PublisherCompositionError` at first use; nothing falls back, and there is no in-memory store. Stored documents of a type the host stopped registering fail `composePublisher` at start-up.
 - Your lockfile must record `@nuxt-layers/rich-text` as its `codeload.github.com` tarball, never `git@github.com`.
 - Events carry identifiers, codes, counts and times only: read content through the server functions.

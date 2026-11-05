@@ -1,4 +1,5 @@
 import type { PublisherEvent } from './events'
+import type { PublisherTypeDeclarationInput } from './types'
 import type { PublisherSubject } from './lifecycle'
 
 /**
@@ -102,4 +103,49 @@ export interface PublisherAssetResolver {
 /** The host's title template, e.g. Configuration's `seo.title-template`. */
 export interface PublisherTitleTemplate {
   format(input: { siteId: string, title: string, type: string, locale: string }): string | Promise<string>
+}
+
+/**
+ * The user as ADR-0012's `resolveCaller` gives them: the tenant, the
+ * subject's identifier (`null` when nobody is signed in) and anything else,
+ * such as how they signed in, which Publisher passes to `decide` untouched.
+ */
+export interface PublisherCaller {
+  tenantId: string | null
+  subjectId: string | null
+  readonly [key: string]: unknown
+}
+
+/** Scheduled work for the host's one scheduler (ADR-0012 §2): run `run` every `every`, such as `1m`. */
+export interface PublisherTask {
+  name: string
+  every: string
+  run: () => Promise<unknown>
+}
+
+/**
+ * Everything `composePublisher` takes (docs/contracts.md §11). Required:
+ * the pool, the document types, `resolveCaller` and `decide`. Everything else
+ * has a default: no approval (types needing it refuse to publish), no policy
+ * holds, no images, the document's title alone, the system clock, and events
+ * kept in the outbox until a `publish` is given.
+ */
+export interface PublisherOptions {
+  pool: PostgresPoolLike
+  migrationPool?: PostgresPoolLike
+  schema?: string
+  runtimeRole?: string
+  types: readonly PublisherTypeDeclarationInput[]
+  resolveCaller: (event: unknown) => Promise<PublisherCaller | null> | PublisherCaller | null
+  /** The site a request is for (later `site-hosting`). Without it, the HTTP API fails closed. */
+  resolveSite?: (event: unknown) => Promise<string | null> | string | null
+  decide: PublisherAccessDecision['decide']
+  approval?: PublisherApproval
+  policy?: PublisherPolicy
+  assets?: PublisherAssetResolver
+  titleTemplate?: PublisherTitleTemplate
+  /** The current time, as a `Date` or an ISO 8601 UTC string. */
+  now?: () => Date | string
+  /** Where the relay task sends events (later `events-queue`). */
+  publish?: (events: readonly PublisherEvent[]) => Promise<void>
 }

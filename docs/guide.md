@@ -2,7 +2,7 @@
 
 > **In short:** register your document types, fill the publisher's ports from the IAM members and your host, then call its services. The publisher stores, versions, approves, publishes and serves documents. How they look is up to you.
 
-> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 7 and 8 change it: composition becomes one call, and the contract stands alone. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) step 8 changes it: the contract stands alone. Each step updates this document.
 
 The publisher is headless (ADR-0009 and ADR-0011, in [Resources](../RESOURCES.md)). The [contract](contracts.md) is the full reference.
 
@@ -53,26 +53,20 @@ import { pagesType, postsType } from '../content-types'
 export default defineNitroPlugin(async () => {
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
 
-  providePublisherDatabase({ dialect: 'postgres', pool })
-  providePublisherDocumentTypes([pagesType, postsType])
-
-  // IAM, through each member's own server functions
-  providePublisherSubjectResolver({ resolve: event => authenticatedPrincipal(event) })
-  providePublisherAccessDecision({ decide: (user, action, resource) => authorisation.decide(user, action, resource) })
-  providePublisherApproval({
-    request: input => approvals.request(input),
-    decision: input => approvals.decision(input),
-  })
-
-  // The site this request is for; the host knows which tenant owns it
-  providePublisherSiteResolver({ resolve: event => configuration.tenantForHost(event) })
-  providePublisherTitleTemplate({ format: input => configuration.title(input) })
-
-  providePublisherEventSink({ publish: events => bus.publish(events) })
-  providePublisherAssetResolver({ resolve: input => assets.addresses(input) })
-
-  await migratePublisherDatabase()
-  await checkPublisherComposition() // fails at start-up if anything is missing
+  const { tasks } = await composePublisher({
+    pool,
+    types: [pagesType, postsType],
+    // IAM, through each member's own server functions
+    resolveCaller: event => authentication.resolveCaller(event),
+    decide: (user, action, resource) => authorisation.decide(user, action, resource),
+    approval: { request: input => approvals.request(input), decision: input => approvals.decision(input) },
+    // The site this request is for; the host knows which tenant owns it
+    resolveSite: event => sites.forRequest(event),
+    titleTemplate: { format: input => configuration.title(input) },
+    assets: { resolve: input => assets.addresses(input) },
+    publish: events => bus.publish(events),
+  }) // migrates, and fails at start-up if anything is missing
+  scheduler.add(tasks)
 })
 ```
 

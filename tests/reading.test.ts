@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { PublisherSubject } from '../shared/contracts'
-import { providePublisherTitleTemplate } from '../server/utils/publisher-composition'
+import { providePublisherTitleTemplate } from '../server/internal/composition'
 import {
   createPublisherDocument,
   getPublishedDocument,

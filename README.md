@@ -45,7 +45,7 @@ A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Au
 
 | Direction | Interface | Purpose |
 |---|---|---|
-| Consumes from the host | `providePublisherDocumentTypes` | The document types: fields (formatted ones by profile), address, listing, lifecycle, personal data |
+| Consumes from the host | `composePublisher`'s `types` | The document types: fields (formatted ones by profile), address, listing, lifecycle, personal data |
 | Consumes from the host | Database, user resolver, site resolver, access decision, approval, clock, event sink, asset resolver, title template | Storage under ADR-0002; the signed-in user; the site; permissions; consent to publish; time; events; images; titles |
 | Provides to the host's screens | The HTTP API and `usePublisher()`, its typed client | Data and actions; content as `rich-text` safe trees |
 | Provides to the host's server | `getPublishedDocument`, `listPublishedDocuments`, feeds, sitemap entries, export and import, personal-data export and erasure, maintenance | Reading, seeding and data-subject requests |
