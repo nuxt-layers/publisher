@@ -13,8 +13,9 @@
 |---|---|---|
 | 1 | Move to the `nuxt-layers` organisation; export bundle format `nuxt-layers.publisher` | Done |
 | 2 | Documents (ADR-0010): `RESOURCES.md`, this plan, `STORAGE-REGISTER.md`, `capability.json`; external links only in Resources | Done |
-| 3 | Toolchain (ADR-0013): Node 26.13.0, Corepack 0.36.0 and pnpm 12.16.1; `allowBuilds`; CI actions pinned by commit, pnpm through Corepack, the store cached | In review |
-| 4 | Composition (ADR-0012): one call taking the pool, `resolveCaller`, `decide`, `tasks`, `now()`, the approval port and the host's types, running migrations itself; fakes of every port, refused outside tests; `examples/minimal-host` with a budget check and smoke test | Next |
+| 3 | Toolchain (ADR-0013): Node 26.13.0, Corepack 0.36.0 and pnpm 12.16.1; `allowBuilds`; CI actions pinned by commit, pnpm through Corepack, the store cached | Done |
+| 3a | [Design review](docs/design-review.md): move security decisions to Authorisation, Authentication and the approvals process | In review |
+| 4 | Composition (ADR-0012): one call taking the pool, `resolveCaller`, `decide`, `tasks`, `now()`, the approval port and the host's types, running migrations itself; fakes of every port, refused outside tests; `examples/minimal-host` with a budget check and smoke test | After 3a |
 | 5 | `CONTRACT.md` rewritten to stand alone (ADR-0012 §6), with the asset port's exact shape and a clock answering a `Date` or an ISO 8601 UTC string | Next |
 
 ## Decided for this work
