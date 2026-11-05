@@ -8,6 +8,19 @@ A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Au
 
 **Documents:** the [guide](docs/guide.md), the full [contract](docs/contracts.md), the [threat model](docs/threat-model.md), the [storage register](STORAGE-REGISTER.md), the [plan](PLAN.md) and the [manifest](capability.json).
 
+## Terms
+
+| Term | Means |
+|---|---|
+| **User** | The person, or an automated service acting for an organisation, who asks Publisher to do something. Code calls them the `subject` today and, after composition, the result of `resolveCaller` |
+| **Tenant** | An organisation or account using the platform, such as a club or a company: the security and data boundary. Its people, groups and roles live in Identity and Authorisation |
+| **Site** | One published website: a single address space where documents live. A site belongs to one tenant; Publisher keeps the site's identifier, and the application says which tenant owns it |
+| **Type** | A kind of document the application registers, such as an article, with its fields and rules |
+| **Document** | One item of a type on a site, with its status and every saved version |
+| **Version** | One saved state of a document's content. Every save makes a new version |
+| **Status** | Where a document is in its lifecycle: draft, in review, scheduled, published or archived |
+| **Address** | The path at which a published document is served on its site |
+
 ## Owns
 
 - The lifecycle of documents of the types a host registers, and every version of each.
@@ -32,7 +45,7 @@ A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Au
 | Direction | Interface | Purpose |
 |---|---|---|
 | Consumes from the host | `providePublisherDocumentTypes` | The document types: fields (formatted ones by profile), address, listing, lifecycle, personal data |
-| Consumes from the host | Database, subject resolver, access decision, approval, clock, event sink, asset resolver, title template | Storage under ADR-0002; the signed-in subject; permissions; consent to publish; time; events; images; titles |
+| Consumes from the host | Database, user resolver, site resolver, access decision, approval, clock, event sink, asset resolver, title template | Storage under ADR-0002; the signed-in user; the site; permissions; consent to publish; time; events; images; titles |
 | Provides to the host's screens | The HTTP API and `usePublisher()`, its typed client | Data and actions; content as `rich-text` safe trees |
 | Provides to the host's server | `getPublishedDocument`, `listPublishedDocuments`, feeds, sitemap entries, export and import, personal-data export and erasure, maintenance | Reading, seeding and data-subject requests |
 | Publishes | `publisher.*` events | Identifiers, codes and times only |

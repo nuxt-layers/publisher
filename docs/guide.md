@@ -2,6 +2,8 @@
 
 > **In short:** register your document types, fill the publisher's ports from the IAM members and your host, then call its services. The publisher stores, versions, approves, publishes and serves documents. How they look is up to you.
 
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 4 to 8 change it: security decisions and moderation leave, delete arrives, and composition becomes one call. Each step updates this document.
+
 The publisher is headless (ADR-0009 and ADR-0011, in [Resources](../RESOURCES.md)). The [contract](contracts.md) is the full reference.
 
 ## What it gives you
@@ -26,7 +28,7 @@ It draws nothing: no pages, routes, components or styles.
 | **Subject resolver** | For the API | **Authentication** | Who is signed in, and how strongly |
 | **Site resolver** | For the API | **Configuration** (tenant by host name) | Which site a request is for |
 | **Access decision** | Yes | **Authorisation** | Whether someone may view drafts, edit, publish or moderate |
-| **Approval** | For types needing approval | **iam-integration**'s approvals process | Consent to publish a version |
+| **Approval** | For types needing approval | The host (later **workflow**) | Consent to publish a version |
 | **Event sink** | For the relay | Your host's event bus | Where events go |
 | **Asset resolver** | No: images are refused | Your asset store | Each image's address |
 | **Title template** | No: titles stand alone | **Configuration** (`seo.title-template`) | Page and feed titles |
@@ -62,7 +64,7 @@ export default defineNitroPlugin(async () => {
     decision: input => approvals.decision(input),
   })
 
-  // Configuration: the tenant this host name belongs to is the site
+  // The site this request is for; the host knows which tenant owns it
   providePublisherSiteResolver({ resolve: event => configuration.tenantForHost(event) })
   providePublisherTitleTemplate({ format: input => configuration.title(input) })
 
@@ -184,7 +186,7 @@ await relayPublisherOutbox()
 
 ## 6. Personal data
 
-For types that hold a person's words, **iam-integration**'s data-subject requests call:
+For types that hold a person's words, the host's handling of a person's data requests calls:
 
 ```ts
 await exportPublisherPersonData({ identityId })

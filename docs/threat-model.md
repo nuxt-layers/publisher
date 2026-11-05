@@ -1,6 +1,8 @@
 # Threat Model
 
-The publisher decides what a site says in public, so its first duty is that nothing is public unless it was meant to be: no draft, no unapproved version, no unmoderated submission, and no markup an editor or a submitter smuggled in. This register follows Security §16, data stores, and ADR-0006 (both in [Resources](../RESOURCES.md)). Status is the state of the implementation; the evidence is the test that proves each control.
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 4 to 8 change it: security decisions and moderation leave, delete arrives, and composition becomes one call. Each step updates this document.
+
+The publisher decides what a site says in public (a **site** is one published website, belonging to one **tenant**, an organisation using the platform: see the README's Terms), so its first duty is that nothing is public unless it was meant to be: no draft, no unapproved version, no unmoderated submission, and no markup an editor or a submitter smuggled in. This register follows Security §16, data stores, and ADR-0006 (both in [Resources](../RESOURCES.md)). Status is the state of the implementation; the evidence is the test that proves each control.
 
 ## 1. Assets
 
@@ -14,7 +16,7 @@ The publisher decides what a site says in public, so its first duty is that noth
 
 | Boundary | Trusted input | Untrusted input |
 |---|---|---|
-| Browser → host → publisher | The signed-in subject, from the host's resolver | Every identifier, path, query and body; every rich-text source; the request's origin |
+| Browser → host → publisher | The signed-in user, from the host's resolver | Every identifier, path, query and body; every rich-text source; the request's origin |
 | Host → publisher at start-up | The type declarations and ports the host supplies, checked before use | — |
 | Publisher → access and approval ports | Their answers, parsed; a failure refuses the action | — |
 | Publisher → asset port | Each asset's address, parsed as an `https` URL or site path | — |
@@ -33,14 +35,14 @@ The publisher decides what a site says in public, so its first duty is that noth
 | T6 | Stored script, event handlers or `javascript:`/`data:` links run in readers' browsers (XSS) | Rich text parsed to `rich-text`'s safe tree for its field's profile ; anything beyond a field's profile refused on save; raw HTML is text; only `https:`, `mailto:`, `doc:`, `asset:` and site paths kept; readers receive safe trees only, never HTML; the layer draws nothing | `tests/rich-text.test.ts` "answers formatted fields as safe trees"; `tests/headless.test.ts`; rich-text's own tests | Implemented |
 | T7 | Images hot-linked from elsewhere, or without alternative text | Images only from `asset:` through the host's asset port; no alt text refused on save | rich-text's own tests; `tests/http.test.ts` "image-without-alt" | Implemented |
 | T8 | An unmoderated submission appears in public | Submissions are `in-review` with `moderation: pending`; only `moderate` releases them; `publish` cannot | lifecycle "moderation" | Implemented |
-| T9 | A person's words published without consent, or kept after erasure | Consent field required to publish; erasure deletes every version, link, redirect and approval; superseded versions deleted after retention; readers never get the subject or consent field | `tests/personal-data.test.ts` | Implemented |
+| T9 | A person's words published without consent, or kept after erasure | Consent field required to publish; erasure deletes every version, link, redirect and approval; superseded versions deleted after retention; readers never get the user or consent field | `tests/personal-data.test.ts` | Implemented |
 | T10 | A lost update overwrites another editor's work | Every action carries `expectedVersion`; anything else is `version-stale` | lifecycle "versions" | Implemented |
 | T11 | A broken or hijacked address after a rename; an open redirect | Redirects recorded automatically, pointing at a document id, never at a URL; only site paths are ever redirect targets | `tests/addresses.test.ts` | Implemented |
 | T12 | Unpublishing silently breaks pages that link to a document | Links stored by id; unpublishing or archiving needs `acknowledgedLinks` at least the current count | addresses "lists every document linking" | Implemented |
 | T13 | Content, titles or names leak through events or logs | Events carry identifiers, codes, counts and times only (strict schemas); errors carry codes, never values | `tests/events.test.ts`; contracts "carries identifiers" | Implemented |
 | T14 | A change without its event, or an event without its change | Outbox written in the same transaction; relayed at least once, in order | events "same transaction" | Implemented |
 | T15 | Cross-site request forgery on administration | State-changing requests need an Origin on the request's own host. Framing, caching and Referer on screens are the host's (contract §15) | http "refuses state-changing requests" | Implemented |
-| T16 | The subject or the author spoofed in a request body | Subject only from the host's resolver; bodies parsed strictly, so an extra `subject` is refused | http "takes the subject only from the host's resolver" | Implemented |
+| T16 | The user or the author spoofed in a request body | The user only from the host's resolver; bodies parsed strictly, so an extra `subject` is refused | http "takes the user only from the host's resolver" | Implemented |
 | T17 | The runtime role alters the schema or bypasses row security | Migrations run as the owner; the runtime role gets data access to its tables only, no ownership, no BYPASSRLS; migrations serialised by an advisory lock | `tests/migrations.test.ts` | Implemented |
 | T18 | A missing or failing port leads to an implicit store, a default type or a partial answer | Required ports fail closed (`PublisherCompositionError`, `unavailable`); no in-memory store; no built-in type; stored documents of an unregistered type stop the layer at start-up | composition tests | Implemented |
 | T19 | Injection through SQL, feed XML or headers | Parameterised SQL only; every row parsed with the contract's schemas before it leaves the layer; feed text escaped; origins parsed | reading "escaping every title"; contracts | Implemented |
