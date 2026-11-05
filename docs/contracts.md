@@ -325,7 +325,7 @@ The host, a kit or `ui` draws everything:
 
 ## 16. Export and import
 
-`exportPublisherContent({ siteId, types? })` answers a site's `{ format: 'nuxt4-layers.publisher', version: 1, exportedAt, types, documents }`: each document's envelope, every version's content and the redirects to it (`publisherBundleSchema`). `importPublisherContent` takes such a bundle into a site of a database where none of its documents exists (`conflict` otherwise), checking every version against its registered type as a save would (`unknown-type`, field and Markdown problems), all or nothing, and writes `publisher.content-imported`. Importing an export into an empty database gives identical content. A bundle names no site, so a site's content moves to another site or environment unchanged. An import is also how a host seeds content; it bypasses no check on content, and needs no subject because it is server-only.
+`exportPublisherContent({ siteId, types? })` answers a site's `{ format: 'nuxt-layers.publisher', version: 1, exportedAt, types, documents }`: each document's envelope, every version's content and the redirects to it (`publisherBundleSchema`). `importPublisherContent` takes such a bundle into a site of a database where none of its documents exists (`conflict` otherwise), checking every version against its registered type as a save would (`unknown-type`, field and Markdown problems), all or nothing, and writes `publisher.content-imported`. Importing an export into an empty database gives identical content. A bundle names no site, so a site's content moves to another site or environment unchanged. An import is also how a host seeds content; it bypasses no check on content, and needs no subject because it is server-only.
 
 ## 17. Versioning
 
