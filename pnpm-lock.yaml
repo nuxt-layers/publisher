@@ -12,8 +12,8 @@ importers:
   .:
     dependencies:
       '@nuxt-layers/rich-text':
-        specifier: github:nuxt-layers/rich-text#v2.0.0
-        version: '@nuxt4-layers/rich-text@https://codeload.github.com/nuxt-layers/rich-text/tar.gz/68ac5b008e60ae0150171324eedeb22eb37110cc'
+        specifier: github:nuxt-layers/rich-text#master
+        version: https://codeload.github.com/nuxt-layers/rich-text/tar.gz/d1200ab5d9320cae927680bb69ddab956b37efb2
       zod:
         specifier: ^4.6.5
         version: 4.6.7
@@ -403,6 +403,11 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
+  '@nuxt-layers/rich-text@https://codeload.github.com/nuxt-layers/rich-text/tar.gz/d1200ab5d9320cae927680bb69ddab956b37efb2':
+    resolution: {tarball: https://codeload.github.com/nuxt-layers/rich-text/tar.gz/d1200ab5d9320cae927680bb69ddab956b37efb2}
+    version: 0.0.0
+    engines: {node: '>=22'}
+
   '@nuxt/cli@4.0.3':
     resolution: {integrity: sha512-ca3G9E8G3QT/uUoRUfiwxmu7ER8jEa3rc1SiSJ5EkfB2NRUhPFZpGENiUEBDwuUZsQWgYvh644pnkN80rPlvXA==}
     engines: {node: ^22.21.0 || ^24.11.0 || >=26.0.0}
@@ -563,11 +568,6 @@ packages:
     peerDependencies:
       nuxt: ^4.6.3
       vite: ^8.3.5
-
-  '@nuxt4-layers/rich-text@https://codeload.github.com/nuxt-layers/rich-text/tar.gz/68ac5b008e60ae0150171324eedeb22eb37110cc':
-    resolution: {tarball: https://codeload.github.com/nuxt-layers/rich-text/tar.gz/68ac5b008e60ae0150171324eedeb22eb37110cc}
-    version: 2.0.0
-    engines: {node: '>=22'}
 
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
@@ -3603,6 +3603,17 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.3
 
+  '@nuxt-layers/rich-text@https://codeload.github.com/nuxt-layers/rich-text/tar.gz/d1200ab5d9320cae927680bb69ddab956b37efb2':
+    dependencies:
+      mdast-util-from-markdown: 2.1.0
+      mdast-util-gfm-strikethrough: 2.0.1
+      mdast-util-gfm-table: 2.0.1
+      micromark-extension-gfm-strikethrough: 2.1.0
+      micromark-extension-gfm-table: 2.1.2
+      zod: 4.6.7
+    transitivePeerDependencies:
+      - supports-color
+
   '@nuxt/cli@4.0.3(@nuxt/schema@4.6.3)(jiti@2.7.0)(rolldown@1.2.16)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2))':
     dependencies:
       '@clack/prompts': 1.8.1
@@ -4002,17 +4013,6 @@ snapshots:
       - oxc-parser
       - rolldown
       - unplugin
-
-  '@nuxt4-layers/rich-text@https://codeload.github.com/nuxt-layers/rich-text/tar.gz/68ac5b008e60ae0150171324eedeb22eb37110cc':
-    dependencies:
-      mdast-util-from-markdown: 2.1.0
-      mdast-util-gfm-strikethrough: 2.0.1
-      mdast-util-gfm-table: 2.0.1
-      micromark-extension-gfm-strikethrough: 2.1.0
-      micromark-extension-gfm-table: 2.1.2
-      zod: 4.6.7
-    transitivePeerDependencies:
-      - supports-color
 
   '@oxc-project/types@0.156.0': {}
 

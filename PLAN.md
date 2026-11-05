@@ -23,7 +23,4 @@
 - The `providePublisher*` calls go in the same change as the single call, with no transition.
 - Publisher declares its approval port in its own contract and knows nothing of where it comes from; the host fills it.
 - Migrations run inside the single call.
-
-## Open
-
-- `rich-text` is followed at its `v2.0.0` tag, which still names itself `@nuxt4-layers/rich-text`. Whether to follow its `master` instead is the owner's decision.
+- `rich-text` is followed at its `master`, not a tag.

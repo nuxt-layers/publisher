@@ -110,7 +110,7 @@ A screen the host draws must still:
 ## You will hit this
 
 - **Hidden is absent.** A draft, an erased document, a document on another site and a preview without `view-draft` all answer exactly as a missing one: `null`, `{ kind: 'none' }`, HTTP 404. `forbidden` never says whether a document exists.
-- **Rich text is a safe tree.** Answers carry `rich-text` v2.0.0 nodes, never HTML. Raw HTML in a field is its text; only `https:`, `mailto:`, `doc:`, `asset:` and site-relative links survive. Images must be `asset:` with alt text, and are refused without an asset resolver.
+- **Rich text is a safe tree.** Answers carry `rich-text` nodes, never HTML. Raw HTML in a field is its text; only `https:`, `mailto:`, `doc:`, `asset:` and site-relative links survive. Images must be `asset:` with alt text, and are refused without an asset resolver.
 - **The API can be off.** With `NUXT_PUBLISHER_API_ENABLED=false` the client's calls 404; use the server functions. On, state-changing requests need an `Origin` on the request's own host.
 - Documents, people and events are lower-case UUIDv7; `correlationId` is any lower-case UUID the host issues. A site id is lower-case letters, digits and `-`, up to 64.
 - A type key is lower-case ASCII with `-`, 1 to 40, starting with a letter. A slug is up to 8 `/`-separated segments of `[a-z0-9]` words joined by `-`, at most 200 characters. Paths are unique per site among published documents, across types and locales (`address-taken` on publishing; drafts may share).
