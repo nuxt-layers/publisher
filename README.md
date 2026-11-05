@@ -12,9 +12,10 @@ A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Au
 
 | Term | Means |
 |---|---|
-| **User** | The person, or an automated service acting for an organisation, who asks Publisher to do something. Code calls them the `subject` today and, after composition, the result of `resolveCaller` |
+| **User** | Who acts: a signed-in person, or an automated service such as an integration or a website's own server. Code calls them the `subject` today and, after composition, the result of `resolveCaller` |
+| **Owner** | On whose behalf: the group a site belongs to. A private account's personal group, a club, a committee, a business, or a whole organisation. Owners never act themselves; their users do |
 | **Tenant** | An organisation or account using the platform, such as a club or a company: the security and data boundary. Its people, groups and roles live in Identity and Authorisation |
-| **Site** | One published website: a single address space where documents live. A site belongs to one tenant; Publisher keeps the site's identifier, and the application says which tenant owns it |
+| **Site** | One publishing space: a set of documents with their own addresses, belonging to one owner. The application decides where it is served: its own domain, a subdomain, or a path within the main application. Publisher keeps only the site's identifier |
 | **Type** | A kind of document the application registers, such as an article, with its fields and rules |
 | **Document** | One item of a type on a site, with its status and every saved version |
 | **Version** | One saved state of a document's content. Every save makes a new version |

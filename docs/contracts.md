@@ -58,7 +58,7 @@ A document of an addressed type carries a `slug` (up to 8 segments of `[a-z0-9]`
 
 ### 3.4 Sites
 
-Every document belongs to one **site**: the host's opaque identifier of where documents are published (`siteIdSchema`: lower-case ASCII letters, digits and `-`, up to 64 characters), A site belongs to one tenant (README, Terms); the host says which. A host with one site uses one fixed name. Types are registered once for every site.
+Every document belongs to one **site**: the host's opaque identifier of where documents are published (`siteIdSchema`: lower-case ASCII letters, digits and `-`, up to 64 characters), A site belongs to one owner, a group within a tenant (README, Terms); the host says which, and where the site is served. A host with one site uses one fixed name. Types are registered once for every site.
 
 - Every server function but migration, the start-up check, maintenance, the relay and a person's export and erasure names its site; the endpoints take it only from the host's site resolver (§11). A request for no site finds nothing (`not-found`) and administers nothing (`forbidden`).
 - A document is addressed, listed, fed, mapped, linked, redirected, moderated and administered on its own site only. On any other site it is as missing as one that never existed, whatever the viewer's permissions there.
