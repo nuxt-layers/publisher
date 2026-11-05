@@ -9,7 +9,7 @@ import type { PublisherPermissionAction } from './types'
  * The table is the contract; the server applies it and nothing else.
  */
 
-export const PUBLISHER_ACTIONS = ['save', 'submit', 'withdraw', 'publish', 'unpublish', 'archive', 'reopen', 'restore', 'moderate'] as const
+export const PUBLISHER_ACTIONS = ['save', 'submit', 'withdraw', 'publish', 'unpublish', 'archive', 'reopen', 'restore'] as const
 export type PublisherAction = typeof PUBLISHER_ACTIONS[number]
 
 export interface PublisherTransition {
@@ -33,8 +33,6 @@ export const PUBLISHER_TRANSITIONS: Readonly<Record<PublisherAction, PublisherTr
   'reopen': { permission: 'edit', from: { archived: ['draft'] } },
   // A new version with an earlier version's content; otherwise as `save`.
   'restore': { permission: 'edit', from: { 'draft': ['draft'], 'in-review': ['draft'], 'scheduled': ['draft'], 'published': ['published'] } },
-  // Types with `moderation`, on a pending submission: accept publishes, reject archives.
-  'moderate': { permission: 'moderate', from: { 'in-review': ['published', 'archived'] } },
 }
 
 /** What `runPublisherMaintenance` does when the clock passes a document's times (§5.4). No permission: the schedule was approved when set. */
@@ -56,7 +54,6 @@ export const publisherActionRequestSchema = z.discriminatedUnion('action', [
   z.strictObject({ action: z.literal('archive'), expectedVersion, acknowledgedLinks: z.number().int().min(0) }),
   z.strictObject({ action: z.literal('reopen'), expectedVersion }),
   z.strictObject({ action: z.literal('restore'), expectedVersion, version: z.number().int().min(1) }),
-  z.strictObject({ action: z.literal('moderate'), expectedVersion, outcome: z.enum(['accept', 'reject']) }),
 ])
 export type PublisherActionRequest = z.output<typeof publisherActionRequestSchema>
 export type PublisherActionRequestInput = z.input<typeof publisherActionRequestSchema>

@@ -1,6 +1,6 @@
 # Publisher Host Contract
 
-> **Note:** this describes the code as it is today. [PLAN.md](PLAN.md) steps 4 to 8 change it: security decisions and moderation leave, delete arrives, and composition becomes one call. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](PLAN.md) steps 6 to 8 change it: delete and reading addresses arrive, and composition becomes one call. Each step updates this document.
 
 What a host needs to compose Publisher, and nothing else (ADR-0012 §6, in [Resources](RESOURCES.md)). The [longer contract](docs/contracts.md) and the code stay the source: where this page disagrees with them, this page is the bug. Publisher predates ADR-0012: there is no single call, and it does not take `resolveCaller` or `decide` yet, so today the host fills each port below itself.
 
@@ -64,21 +64,20 @@ Every port rejects on failure; the layer then answers `unavailable`, never a par
 
 | Side | Function | Does |
 |---|---|---|
-| Client | `usePublisher()` | Calls the HTTP API: `resolve(path, preview)`, `list(query)`, `types()`, `documents(query)`, `document(id, version?)`, `history(id)`, `backlinks(id)`, `moderation()`, `create(type, content)`, `act(id, action)`. Decides nothing; `publisherErrorOf(error)` reads `{ code, reason? }` |
+| Client | `usePublisher()` | Calls the HTTP API: `resolve(path, preview)`, `list(query)`, `types()`, `documents(query)`, `document(id, version?)`, `history(id)`, `backlinks(id)`, `create(type, content)`, `act(id, action)`. Decides nothing; `publisherErrorOf(error)` reads `{ code, reason? }` |
 | Server | `createPublisherDocument({ siteId, subject, correlationId, type, content })` | A draft at version 1 |
-| Server | `transitionPublisherDocument({ siteId, subject, correlationId, documentId, request })` | One action: `save`, `submit`, `withdraw`, `publish` (`publishAt?`, `unpublishAt?`), `unpublish`, `archive` (both with `acknowledgedLinks`), `reopen`, `restore` (`version`), `moderate` (`outcome`); each with `expectedVersion` |
+| Server | `transitionPublisherDocument({ siteId, subject, correlationId, documentId, request })` | One action: `save`, `submit`, `withdraw`, `publish` (`publishAt?`, `unpublishAt?`), `unpublish`, `archive` (both with `acknowledgedLinks`), `reopen`, `restore` (`version`); each with `expectedVersion` |
 | Server | `resolvePublisherPath({ siteId, path, viewer?, preview? })` | `{ kind: 'document', rendered }`, `{ kind: 'redirect', to, status: 301 }` or `{ kind: 'none' }` |
 | Server | `getPublishedDocument`, `listPublishedDocuments`, `getPublisherFeed`, `listPublisherSitemapEntries` | One document (by path or id), a listing (up to 100, equality filters), RSS or Atom, sitemap paths |
-| Server | `getPublisherDocument`, `listPublisherDocuments`, `listPublisherHistory`, `listPublisherBacklinks`, `listPublisherModerationQueue` | Administration reads under `view-draft` (the queue under `moderate`) |
-| Server only | `receivePublisherSubmission({ siteId, type, submitterId, content, correlationId })` | A moderated type's submission from the host's own form handling |
+| Server | `getPublisherDocument`, `listPublisherDocuments`, `listPublisherHistory`, `listPublisherBacklinks` | Administration reads under `view-draft` (the queue under `moderate`) |
 | Server only | `exportPublisherContent`, `importPublisherContent` | A site's bundle out and in; import is also how a host seeds content |
 | Server only | `exportPublisherPersonData({ identityId })`, `erasePublisherPerson({ identityId, correlationId })` | For iam-integration's data-subject requests; every site and version |
 
-The HTTP API, under `/api/publisher`: `GET /resolve`, `GET /documents`, `GET /feeds/{type}/rss` and `/atom` for anyone; `GET /admin/types`, `GET`/`POST /admin/documents`, `GET /admin/documents/{id}`, `POST /admin/documents/{id}/actions`, `GET .../history`, `.../backlinks`, `.../preview`, `GET /admin/moderation` for the signed in.
+The HTTP API, under `/api/publisher`: `GET /resolve`, `GET /documents`, `GET /feeds/{type}/rss` and `/atom` for anyone; `GET /admin/types`, `GET`/`POST /admin/documents`, `GET /admin/documents/{id}`, `POST /admin/documents/{id}/actions`, `GET .../history`, `.../backlinks`, `.../preview` for the signed in.
 
 **The editor slot.** `GET /admin/types` (`usePublisher().types()`) answers each type the subject may touch with its `label`, `address`, `schema` (the fields as JSON Schema) and `richTextFields` (`{ path, profile, max }`), and what the subject `may` do. `content-editor` plugs in there: it builds the form from that answer and saves through `create` and `act`. Plain form controls work too: the server checks every save.
 
-Errors are `{ code, reason? }`: `unauthenticated` 401, `forbidden` 403, `not-found` 404, `insufficient-assurance` 403, `validation-failed` 400 (a content problem such as `not-in-profile`, `image-without-alt`, `unknown-type`), `conflict` 409 (`version-stale`, `invalid-transition`, `address-taken`, `review-required`, `approval-missing`, `consent-missing`, `scheduling-disabled`, `still-linked`, `not-moderated`, `erased`), `unavailable` 503. A server function throws `PublisherFailure` with the same `code` and `reason`.
+Errors are `{ code, reason? }`: `unauthenticated` 401, `forbidden` 403, `not-found` 404, `insufficient-assurance` 403, `validation-failed` 400 (a content problem such as `not-in-profile`, `image-without-alt`, `unknown-type`), `conflict` 409 (`version-stale`, `invalid-transition`, `address-taken`, `review-required`, `approval-missing`, `consent-missing`, `scheduling-disabled`, `still-linked`, `erased`), `unavailable` 503. A server function throws `PublisherFailure` with the same `code` and `reason`.
 
 ## Permissions
 
@@ -89,7 +88,6 @@ Four per registered type, from `publisherPermissions(usePublisherRegistry())`, f
 | `publisher.<type>.view-draft` | Drafts, history, backlinks, administration lists, previews |
 | `publisher.<type>.edit` | Create, save, submit, withdraw, reopen, restore |
 | `publisher.<type>.publish` | Publish, schedule, unpublish, archive |
-| `publisher.<type>.moderate` | Accept or reject submissions |
 
 ## Screens
 
@@ -115,7 +113,8 @@ A screen the host draws must still:
 - **The API can be off.** With `NUXT_PUBLISHER_API_ENABLED=false` the client's calls 404; use the server functions. On, state-changing requests need an `Origin` on the request's own host.
 - Documents, people and events are lower-case UUIDv7; `correlationId` is any lower-case UUID the host issues. A site id is lower-case letters, digits and `-`, up to 64.
 - A type key is lower-case ASCII with `-`, 1 to 40, starting with a letter. A slug is up to 8 `/`-separated segments of `[a-z0-9]` words joined by `-`, at most 200 characters. Paths are unique per site among published documents, across types and locales (`address-taken` on publishing; drafts may share).
-- A type with `approval` cannot also have `moderation`. Saving after submitting asks for approval again: consent binds to the version's digest.
+- Saving after submitting asks for approval again: consent binds to the version's digest.
+- Content from people who are not editors is the host's to take in (later `workflow`): it creates an ordinary draft as a service user, and an editor publishes it.
 - Personal-data types need the consent field before publishing (`consent-missing`); their subject and consent fields never reach a reader.
 - A missing required port throws `PublisherCompositionError` at first use; nothing falls back, and there is no in-memory store. Stored documents of a type the host stopped registering fail `checkPublisherComposition()`.
 - Your lockfile must record `@nuxt-layers/rich-text` as its `codeload.github.com` tarball, never `git@github.com`.

@@ -1,6 +1,6 @@
 # Publisher Contract (version 1)
 
-> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 4 to 8 change it: security decisions and moderation leave, delete arrives, and composition becomes one call. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 6 to 8 change it: delete and reading addresses arrive, and composition becomes one call. Each step updates this document.
 
 `@nuxt-layers/publisher/contracts` is the only supported import path for this capability's types and pure helpers. It imports nothing but `zod`: no Nuxt, Vue, h3, server code, driver or other `@nuxt-layers/*` package.
 
@@ -10,11 +10,11 @@ The publisher answers one question: **which version of which document is publish
 
 | Concern | Owner | How the publisher sees it |
 |---|---|---|
-| Drafts, versions, history, review, moderation, scheduling, addresses, redirects, links between documents, safe rich text, listings, feeds | **Publisher** | §4 to §8 |
+| Drafts, versions, history, review, scheduling, addresses, redirects, links between documents, safe rich text, listings, feeds | **Publisher** | §4 to §8 |
 | What a document is: its fields, address rule, listing, lifecycle options | The host | A registered type declaration (§3) |
 | Site name, legal entity, contacts, SEO defaults | The host, from `nuxt-layers/configuration` | The title-template port (§11); nothing else |
 | The site shell, routes and every screen | The host, a kit or `ui` | Never. The layer is headless (§15) |
-| Contact forms and sending mail | The host, or a later forms service | Never. A form may hand a submission to `receivePublisherSubmission` (§5.3) |
+| Contact forms, content from people who are not editors, and sending mail | The host, later `workflow` | Never. A form handler creates an ordinary draft as a service user (§5.3) |
 | `security.txt` | The host, from Configuration's `contact.security` | Never |
 | Images and files | The host's asset store | `asset:` references, resolved through the asset port (§6.2) |
 | People's names | Profile | Opaque identity identifiers only (§4); the host's screens ask Profile (§15) |
@@ -40,10 +40,10 @@ Registered once at start-up with `providePublisherDocumentTypes(declarations)`. 
 | `fields` | A zod schema for the type's own content: a strict object (`z.strictObject`); every string, array and record within it bounded. Formatted fields are `richTextSchema({ profile, max })` (§6); their `doc:` links are extracted (§7.3) |
 | `address` | `{ kind: 'none' }` for documents only ever embedded or listed; or `{ kind: 'path', base, pattern }`, `base` being `''` (the site's root) or a site path without a trailing `/`, and `pattern` `slug` (`{base}/{slug}`) or `date-slug` (`{base}/{YYYY}/{MM}/{DD}/{slug}`) |
 | `listing` | `{ listable, order, filterable }`: whether the type is listed and fed (§8); its default order (`published-desc`, `published-asc`, `title-asc`, `updated-desc`); top-level fields readers may filter on, each a bounded string, an enumeration or an array of either. Default: not listable |
-| `lifecycle` | `{ approval, moderation, scheduling }`: whether publishing needs the approval port's consent (§5.2); whether submissions are moderated (§5.3; not with `approval`); whether `publishAt` and `unpublishAt` may be set (§5.4). Default: all `false` |
+| `lifecycle` | `{ approval, scheduling }`: whether publishing needs the approval port's consent (§5.2); whether `publishAt` and `unpublishAt` may be set (§5.4). Default: all `false` |
 | `personalData` | `null`, or `{ subjectField, consentField, retentionDays }` (§9): the field holding the person's identity identifier (a UUIDv7); the field holding their consent (`publisherConsentSchema`, optional in the schema so a draft may lack it); and how long superseded versions are kept, 30 to 2,190 days |
 
-A declaration is refused at start-up, failing closed, when it is invalid against the meta-schema; when its `fields` is not a strict object or holds an unbounded string, array or record; when it has more than 20 formatted fields; when a filterable, subject or consent field does not exist or has the wrong shape; or when it declares both `approval` and `moderation`. Two declarations of one `type` are refused likewise. `definePublisherDocumentType` types a declaration without registering it.
+A declaration is refused at start-up, failing closed, when it is invalid against the meta-schema; when its `fields` is not a strict object or holds an unbounded string, array or record; when it has more than 20 formatted fields; when a filterable, subject or consent field does not exist or has the wrong shape. Two declarations of one `type` are refused likewise. `definePublisherDocumentType` types a declaration without registering it.
 
 ### 3.2 Addresses
 
@@ -61,7 +61,7 @@ A document of an addressed type carries a `slug` (up to 8 segments of `[a-z0-9]`
 Every document belongs to one **site**: the host's opaque identifier of where documents are published (`siteIdSchema`: lower-case ASCII letters, digits and `-`, up to 64 characters), A site belongs to one owner, a group within a tenant (README, Terms); the host says which, and where the site is served. A host with one site uses one fixed name. Types are registered once for every site.
 
 - Every server function but migration, the start-up check, maintenance, the relay and a person's export and erasure names its site; the endpoints take it only from the host's site resolver (§11). A request for no site finds nothing (`not-found`) and administers nothing (`forbidden`).
-- A document is addressed, listed, fed, mapped, linked, redirected, moderated and administered on its own site only. On any other site it is as missing as one that never existed, whatever the viewer's permissions there.
+- A document is addressed, listed, fed, mapped, linked, redirected and administered on its own site only. On any other site it is as missing as one that never existed, whatever the viewer's permissions there.
 - Addresses are unique per site: two sites may publish at the same path. `doc:` links resolve only to documents of the same site; anything else renders as text.
 - The access-decision, approval, asset and title-template ports are told the site, so a host maps each site to its own group, approvals, asset store and title.
 - A person's export and erasure cover every site, and say which site each document was on.
@@ -73,7 +73,7 @@ The same for every type (`publisherDocumentSchema`):
 | Group | Fields |
 |---|---|
 | Identity and content | `id` (UUIDv7), `siteId` (§3.4), `type`, `locale` (BCP 47), `title` (safe text, 1 to 200), `summary` (safe text up to 500, or `null`), `fields` (the type's own, parsed by its schema), `slug`, `addressDate`, `path` |
-| Lifecycle | `status` (`draft`, `in-review`, `scheduled`, `published`, `archived`), `publishAt`, `unpublishAt`, `version` (of these contents), `latestVersion`, `publishedVersion`, `reviewVersion`, `moderation` (`pending`, `accepted`, `rejected` or `null`), `createdAt`, `updatedAt`, `publishedAt` |
+| Lifecycle | `status` (`draft`, `in-review`, `scheduled`, `published`, `archived`), `publishAt`, `unpublishAt`, `version` (of these contents), `latestVersion`, `publishedVersion`, `reviewVersion`, `createdAt`, `updatedAt`, `publishedAt` |
 | People | `authors`: up to 20 opaque identity identifiers. Names are the host's |
 
 What an editor writes is the content of one version (`publisherContentSchema`): `locale`, `title`, `summary`, `fields`, `slug`, `addressDate` and `authors`. Every save is a new version.
@@ -95,7 +95,6 @@ One state machine for every type (`PUBLISHER_TRANSITIONS`). Each action names th
 | `archive` | `publish` | any but `archived` → `archived` | With `acknowledgedLinks` (§7.3) |
 | `reopen` | `edit` | `archived` → `draft` | The only way out of `archived` |
 | `restore` | `edit` | as `save` | A new version with an earlier version's content (`restoredFrom`) |
-| `moderate` | `moderate` | `in-review` with `moderation: pending` → `published` (accept) or `archived` (reject) | Types with `moderation` only (§5.3) |
 
 An action not allowed from the current status is `conflict`, `invalid-transition`. Only the published version is public (§8.4). Every action asks the access-decision port (§11) whether the user may take it. Refused, it is `forbidden`; when Authorisation answers `reason: 'step-up'`, `insufficient-assurance`, so the user can sign in again. Risk and step-up are Authorisation's alone.
 
@@ -110,7 +109,7 @@ A type with `lifecycle.approval` never publishes without the approval port's con
 
 ### 5.3 Moderation
 
-A type with `lifecycle.moderation` takes submissions from the host's own form handling through `receivePublisherSubmission({ type, submitterId, content, correlationId })`, server-only: the host decides who may submit. A submission is a document in `in-review` with `moderation: pending`, hidden from readers, listings and feeds, and listed in the moderation queue to those holding the type's `moderate`. `publish` cannot release it (`not-moderated`); only `moderate` does, accepting (published) or rejecting (archived, `moderation: rejected`). Editors may still create documents of the type directly, which follow §5.1.
+Not Publisher's. Content from people who are not editors arrives through the host's own form handling (later `workflow`), which decides who may send it and filters abuse, then creates an ordinary draft as a service user; an editor publishes or archives it through the normal lifecycle.
 
 ### 5.4 Scheduling
 
@@ -153,7 +152,7 @@ A rendered answer carries each formatted field as `richText`: `{ path, profile, 
 
 ### 6.5 Checks on save
 
-Every formatted field of a version is normalised (NFC, `\n` line ends) and checked by its `richTextSchema` on create, save, restore, submission and import. Refused (`validation-failed`): anything beyond the profile (`not-in-profile`), a second paragraph in an inline field (`more-than-one-paragraph`), control characters (`unsafe-characters`), an image without alt text (`image-without-alt`) or from anywhere but `asset:` (`image-not-asset`), and any image when the host supplies no asset port (`images-unavailable`). Links are not refused: a link to an unpublished document renders as text until it is published.
+Every formatted field of a version is normalised (NFC, `\n` line ends) and checked by its `richTextSchema` on create, save, restore and import. Refused (`validation-failed`): anything beyond the profile (`not-in-profile`), a second paragraph in an inline field (`more-than-one-paragraph`), control characters (`unsafe-characters`), an image without alt text (`image-without-alt`) or from anywhere but `asset:` (`image-not-asset`), and any image when the host supplies no asset port (`images-unavailable`). Links are not refused: a link to an unpublished document renders as text until it is published.
 
 ## 7. Addresses and links
 
@@ -191,7 +190,7 @@ Only published documents are public, at their published version. A preview of th
 
 For types declaring `personalData`:
 
-- **Consent.** Publishing (by `publish` or `moderate`) refuses a version whose `consentField` is absent (`conflict`, `consent-missing`).
+- **Consent.** Publishing refuses a version whose `consentField` is absent (`conflict`, `consent-missing`).
 - **Export.** `exportPublisherPersonData({ identityId })` answers every document whose newest or any earlier version names the person in its `subjectField`, with every version, in the bundle's document form (§16).
 - **Erasure.** `erasePublisherPerson({ identityId, correlationId })` deletes exactly those documents, every version of them, their links, redirects and approvals, writes `publisher.document-unpublished` (`erased`) for each that was published and `publisher.person-erased` with the counts. Linking documents survive; their links render as text. Erasing again erases nothing. A host calls both when a person asks for their data or its erasure.
 - **Retention.** `runPublisherMaintenance()` deletes superseded versions (neither the newest nor the published) saved longer ago than the type's `retentionDays`.
@@ -206,7 +205,6 @@ Derived for each registered type (`publisherPermissions(registry)`), for the hos
 | `publisher.<type>.view-draft` | Reading drafts, history, links and administration lists of the type; previews |
 | `publisher.<type>.edit` | Creating, saving, submitting, withdrawing, reopening and restoring |
 | `publisher.<type>.publish` | Publishing, scheduling, unpublishing and archiving |
-| `publisher.<type>.moderate` | Accepting and rejecting submissions |
 
 ## 11. Ports
 
@@ -240,8 +238,6 @@ Written to the publisher's transactional outbox in the same transaction as the c
 | `publisher.document-unpublished` | `documentId`, `type`, `reasonCode` (`unpublished`, `archived`, `expired`, `erased`) |
 | `publisher.document-reopened` | `documentId`, `type` |
 | `publisher.address-changed` | `documentId`, `type`, `redirectRecorded` |
-| `publisher.submission-received` | `documentId`, `type` |
-| `publisher.submission-moderated` | `documentId`, `type`, `outcome` |
 | `publisher.person-erased` | `identityId`, `documents`, `versions` |
 | `publisher.content-imported` | `documents`, `versions` |
 | `publisher.retention-applied` | `versions`, when a run deleted any |
@@ -258,8 +254,7 @@ Auto-imported in the host's server code. The user is always the signed-in princi
 | `checkPublisherComposition()` | §11, §3.3. A host calls it at start-up after migrating |
 | `createPublisherDocument({ subject, type, content, correlationId })` | §5.1 |
 | `transitionPublisherDocument({ subject, documentId, request, correlationId })` | Any action of §5.1 (`publisherActionRequestSchema`) |
-| `receivePublisherSubmission({ type, submitterId, content, correlationId })` | §5.3. Server-only |
-| `getPublisherDocument({ subject, documentId, version? })`, `listPublisherDocuments({ subject, type, search?, status?, limit?, offset? })`, `listPublisherHistory`, `listPublisherBacklinks`, `listPublisherModerationQueue` | Administration reads, under `view-draft` (the queue under `moderate`); anything else `forbidden` |
+| `getPublisherDocument({ subject, documentId, version? })`, `listPublisherDocuments({ subject, type, search?, status?, limit?, offset? })`, `listPublisherHistory`, `listPublisherBacklinks` | Administration reads, under `view-draft`; anything else `forbidden` |
 | `resolvePublisherPath`, `getPublishedDocument({ path } or { documentId }, viewer?, preview?)` | §7.1, §8.4 |
 | `listPublishedDocuments`, `getPublisherFeed`, `listPublisherSitemapEntries` | §8 |
 | `runPublisherMaintenance()` | §5.4, §9. Never an endpoint |
@@ -283,9 +278,8 @@ The host may switch the API off: `runtimeConfig.publisher.api.enabled: false`, o
 | `GET /admin/documents/{id}?version=…` | `view-draft` | §5.5 |
 | `POST /admin/documents/{id}/actions` | §5.1 | One action (`publisherActionRequestSchema`) |
 | `GET /admin/documents/{id}/history`, `/backlinks`, `/preview` | `view-draft` | §5.5, §7.3, §8.4 |
-| `GET /admin/moderation` | `moderate` | §5.3 |
 
-Export, import, submissions, erasure, maintenance and the relay are never endpoints.
+Export, import, erasure, maintenance and the relay are never endpoints.
 
 ### 14.1 Errors
 
@@ -334,8 +328,8 @@ Contract version 2 (`PUBLISHER_CONTRACT_VERSION`): version 1 decided risk, step-
 ## 18. Decisions
 
 1. **Status belongs to the document.** A published document stays `published` while a newer version is saved or awaits approval (`latestVersion`, `reviewVersion`); readers see `publishedVersion` until the next publish. `in-review` is for documents not yet public.
-2. **Approval or moderation, not both.** Moderation is the review of submissions; a type with both would ask two processes for one decision.
-3. **Submissions are server-only.** Who may submit (anyone, signed-in people, customers who bought something) is the host's form handling's decision; the publisher only keeps submissions hidden until moderated.
+2. **No moderation of its own.** Taking in content from people who are not editors is workflow, the host's and later `workflow`'s; what arrives is an ordinary draft.
+3. **Who may send content in is not Publisher's.** The host's form handling decides; Publisher checks every draft it is given against its type.
 4. **Unpublishing returns to draft; an `unpublishAt` archives.** An editor taking a document down usually means to change it; a scheduled end means the document has run its course.
 5. **One address space.** Paths are unique across types and locales; a translation is its own document at its own address. Locale-aware routing, if any, is the host's.
 6. **Uniqueness on publishing.** Drafts may share an address, so an editor can prepare a replacement; publishing claims it.

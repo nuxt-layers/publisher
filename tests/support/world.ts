@@ -54,9 +54,9 @@ export class World {
     for (const permission of permissions) this.grants.add(`${identityId}|${permission}`)
   }
 
-  /** Every permission on a type: `view-draft`, `edit`, `publish`, `moderate`. */
+  /** Every permission on a type: `view-draft`, `edit`, `publish`. */
   grantAll(identityId: string, type: string): void {
-    this.grant(identityId, ...['view-draft', 'edit', 'publish', 'moderate'].map(action => `publisher.${type}.${action}`))
+    this.grant(identityId, ...['view-draft', 'edit', 'publish'].map(action => `publisher.${type}.${action}`))
   }
 
   /** A permission on one site only. */

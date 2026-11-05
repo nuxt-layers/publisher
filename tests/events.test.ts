@@ -4,7 +4,6 @@ import {
   createPublisherDocument,
   erasePublisherPerson,
   exportPublisherContent,
-  receivePublisherSubmission,
   relayPublisherOutbox,
   runPublisherMaintenance,
   transitionPublisherDocument,
@@ -48,8 +47,8 @@ describe.skipIf(!hasDatabase)('events (PostgreSQL)', () => {
     await runPublisherMaintenance()
     await act(page.id, { action: 'save', expectedVersion: 1, content: landing('zephyr-renamed', secret, secret) })
     const carol = id()
-    const { documentId } = await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: carol, type: 'appraisal', content: appraisal(carol, { words: secret }) })
-    await act(documentId, { action: 'moderate', expectedVersion: 1, outcome: 'accept' })
+    const { id: documentId } = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'appraisal', content: appraisal(carol, { words: secret }) })
+    await act(documentId, { action: 'publish', expectedVersion: 1 })
     await erasePublisherPerson({ identityId: carol, correlationId: id() })
 
     const events = await harness.outbox()
@@ -59,8 +58,7 @@ describe.skipIf(!hasDatabase)('events (PostgreSQL)', () => {
       'publisher.document-scheduled',
       'publisher.document-published',
       'publisher.document-saved',
-      'publisher.submission-received',
-      'publisher.submission-moderated',
+      'publisher.document-created',
       'publisher.document-published',
       'publisher.document-unpublished',
       'publisher.person-erased',

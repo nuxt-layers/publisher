@@ -41,12 +41,12 @@ async function latest(client: Client, siteId: string, documentId: string): Promi
   return toDocument(row, (await loadVersion(client, documentId, row.latest_version))!)
 }
 
-async function insertDocument(client: Client, siteId: string, declaration: PublisherTypeDeclaration, content: PublisherContent, status: 'draft' | 'in-review', moderation: 'pending' | null, savedBy: string | null): Promise<string> {
+async function insertDocument(client: Client, siteId: string, declaration: PublisherTypeDeclaration, content: PublisherContent, savedBy: string | null): Promise<string> {
   const at = now()
   const documentId = uuidv7(at)
   await client.query(
-    `insert into ${schemaName()}."document" ("id", "site_id", "type", "status", "latest_version", "moderation", "created_at", "updated_at", "latest_path") values ($1, $7, $2, $3, 1, $4, $5, $5, $6)`,
-    [documentId, declaration.type, status, moderation, at, pathOf(declaration, content, null), siteId],
+    `insert into ${schemaName()}."document" ("id", "site_id", "type", "status", "latest_version", "created_at", "updated_at", "latest_path") values ($1, $5, $2, 'draft', 1, $3, $3, $4)`,
+    [documentId, declaration.type, at, pathOf(declaration, content, null), siteId],
   )
   await insertVersion(client, declaration, documentId, 1, content, savedBy, null, at)
   await refreshLinks(client, { id: documentId, type: declaration.type, latest_version: 1, published_version: null })
@@ -59,21 +59,9 @@ export async function createDocument(input: { siteId: string, subject: Publisher
   return inTransaction(async (client) => {
     await authorise(input.subject, siteId, input.type, 'edit', null)
     const content = parseContent(declaration, input.content)
-    const documentId = await insertDocument(client, siteId, declaration, content, 'draft', null, input.subject.identityId)
+    const documentId = await insertDocument(client, siteId, declaration, content, input.subject.identityId)
     await emit(client, 'publisher.document-created', { siteId, documentId, type: declaration.type, version: 1 }, { correlationId: input.correlationId, actorId: input.subject.identityId })
     return latest(client, siteId, documentId)
-  })
-}
-
-export async function receiveSubmission(input: { siteId: string, correlationId: string, submitterId: string | null, type: string, content: unknown }): Promise<{ documentId: string }> {
-  const siteId = siteOf(input.siteId)
-  const declaration = declarationOf(input.type)
-  if (!declaration.lifecycle.moderation) throw new PublisherFailure('validation-failed', 'not-moderated')
-  return inTransaction(async (client) => {
-    const content = parseContent(declaration, input.content)
-    const documentId = await insertDocument(client, siteId, declaration, content, 'in-review', 'pending', input.submitterId)
-    await emit(client, 'publisher.submission-received', { siteId, documentId, type: declaration.type }, { correlationId: input.correlationId, actorId: input.submitterId })
-    return { documentId }
   })
 }
 
@@ -127,11 +115,11 @@ export async function publishNow(client: Client, row: DocumentRow, version: Vers
   await emit(client, 'publisher.document-published', { siteId: row.site_id, documentId: row.id, type: row.type, version: version.version, unpublishAt: unpublishAt?.toISOString() ?? null }, context)
 }
 
-async function takeDown(client: Client, row: DocumentRow, status: 'draft' | 'archived', reasonCode: 'unpublished' | 'archived' | 'expired', context: Context, extra: { moderation?: 'rejected' } = {}): Promise<void> {
+async function takeDown(client: Client, row: DocumentRow, status: 'draft' | 'archived', reasonCode: 'unpublished' | 'archived' | 'expired', context: Context): Promise<void> {
   const wasPublic = row.status === 'published' || row.status === 'scheduled'
   await client.query(
-    `update ${schemaName()}."document" set "status" = $2, "published_version" = null, "path" = null, "publish_at" = null, "unpublish_at" = null, "review_version" = null, "approval_id" = null, "review_requester" = null, "moderation" = coalesce($4, "moderation"), "updated_at" = $3 where "id" = $1`,
-    [row.id, status, now(), extra.moderation ?? null],
+    `update ${schemaName()}."document" set "status" = $2, "published_version" = null, "path" = null, "publish_at" = null, "unpublish_at" = null, "review_version" = null, "approval_id" = null, "review_requester" = null, "updated_at" = $3 where "id" = $1`,
+    [row.id, status, now()],
   )
   await refreshLinks(client, { ...row, published_version: null })
   if (wasPublic || reasonCode !== 'unpublished') await emit(client, 'publisher.document-unpublished', { siteId: row.site_id, documentId: row.id, type: row.type, reasonCode }, context)
@@ -216,7 +204,6 @@ export async function transitionDocument(input: { siteId: string, subject: Publi
         break
       }
       case 'publish': {
-        if (row.moderation === 'pending') throw new PublisherFailure('conflict', 'not-moderated')
         if (row.status === 'published' && row.latest_version === row.published_version) throw new PublisherFailure('conflict', 'invalid-transition')
         const publishAt = request.publishAt === null ? null : new Date(request.publishAt)
         const unpublishAt = request.unpublishAt === null ? null : new Date(request.unpublishAt)
@@ -247,23 +234,6 @@ export async function transitionDocument(input: { siteId: string, subject: Publi
       case 'reopen': {
         await client.query(`update ${schemaName()}."document" set "status" = 'draft', "updated_at" = $2 where "id" = $1`, [row.id, at])
         await emit(client, 'publisher.document-reopened', { siteId: row.site_id, documentId: row.id, type: row.type }, context)
-        break
-      }
-      case 'moderate': {
-        if (!declaration.lifecycle.moderation || row.moderation !== 'pending') throw new PublisherFailure('conflict', 'invalid-transition')
-        if (request.outcome === 'accept') {
-          if (!consentRecorded(declaration, newest.content)) throw new PublisherFailure('conflict', 'consent-missing')
-          await client.query(`update ${schemaName()}."document" set "moderation" = 'accepted' where "id" = $1`, [row.id])
-          await emit(client, 'publisher.submission-moderated', { siteId: row.site_id, documentId: row.id, type: row.type, outcome: 'accepted' }, context)
-          await publishNow(client, { ...row, moderation: 'accepted' }, newest, null, context)
-        }
-        else {
-          await client.query(
-            `update ${schemaName()}."document" set "status" = 'archived', "moderation" = 'rejected', "updated_at" = $2 where "id" = $1`,
-            [row.id, at],
-          )
-          await emit(client, 'publisher.submission-moderated', { siteId: row.site_id, documentId: row.id, type: row.type, outcome: 'rejected' }, context)
-        }
         break
       }
     }

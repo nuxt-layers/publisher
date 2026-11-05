@@ -105,19 +105,6 @@ export async function listDocuments(input: { siteId: string, subject: PublisherS
   })
 }
 
-export async function listModerationQueue(input: { siteId: string, subject: PublisherSubject, type?: string }): Promise<PublisherListing> {
-  const siteId = siteOf(input.siteId)
-  return withClient(async (client) => {
-    const types: string[] = []
-    for (const declaration of usePublisherRegistry().values()) {
-      if (!declaration.lifecycle.moderation || (input.type && input.type !== declaration.type)) continue
-      if (await allows(input.subject, siteId, declaration.type, 'moderate', null)) types.push(declaration.type)
-    }
-    if (types.length === 0) return { documents: [], total: 0 }
-    return listLatest(client, `d."type" = any($1::text[]) and d."site_id" = $2 and d."moderation" = 'pending' and d."status" = 'in-review'`, [types, siteId], 100, 0)
-  })
-}
-
 export async function listHistory(input: { siteId: string, subject: PublisherSubject, documentId: string }): Promise<PublisherVersion[]> {
   const siteId = siteOf(input.siteId)
   return withClient(async (client) => {
@@ -404,7 +391,6 @@ async function bundleDocuments(client: Client, where: string, values: unknown[])
       status: row.status,
       publishedVersion: row.published_version,
       reviewVersion: row.review_version,
-      moderation: row.moderation,
       publishAt: iso(row.publish_at),
       unpublishAt: iso(row.unpublish_at),
       createdAt: iso(row.created_at)!,
@@ -455,8 +441,8 @@ export async function importContent(input: { siteId: string, bundle: unknown, co
       const path = document.status === 'published' && published ? pathOf(declaration, published.content, publishedAt) : null
       try {
         await client.query(
-          `insert into ${schemaName()}."document" ("id", "site_id", "type", "status", "latest_version", "published_version", "review_version", "moderation", "publish_at", "unpublish_at", "created_at", "updated_at", "published_at", "path", "latest_path") values ($1, $15, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-          [document.id, document.type, document.status, latest.version, document.publishedVersion, document.reviewVersion, document.moderation, document.publishAt, document.unpublishAt, document.createdAt, document.updatedAt, document.publishedAt, path, pathOf(declaration, latest.content, publishedAt), siteId],
+          `insert into ${schemaName()}."document" ("id", "site_id", "type", "status", "latest_version", "published_version", "review_version", "publish_at", "unpublish_at", "created_at", "updated_at", "published_at", "path", "latest_path") values ($1, $14, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+          [document.id, document.type, document.status, latest.version, document.publishedVersion, document.reviewVersion, document.publishAt, document.unpublishAt, document.createdAt, document.updatedAt, document.publishedAt, path, pathOf(declaration, latest.content, publishedAt), siteId],
         )
       }
       catch (error) {

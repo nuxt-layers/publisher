@@ -6,7 +6,7 @@ import { createApp, createRouter, getRequestHeader, toWebHandler } from 'h3'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { publisherApiEnabledFrom, setPublisherApiEnabled } from '../server/internal/http'
 import { clearPublisherComposition, providePublisherSiteResolver, providePublisherSubjectResolver } from '../server/utils/publisher-composition'
-import { createPublisherDocument, receivePublisherSubmission, transitionPublisherDocument } from '../server/utils/publisher-server'
+import { createPublisherDocument, transitionPublisherDocument } from '../server/utils/publisher-server'
 import { hasDatabase, requireDatabaseInCi } from './support/database'
 import { Harness } from './support/publisher'
 import { toPosix } from './support/paths'
@@ -31,7 +31,6 @@ const ENDPOINTS = [
   'GET /api/publisher/admin/documents/:documentId/history',
   'GET /api/publisher/admin/documents/:documentId/backlinks',
   'GET /api/publisher/admin/documents/:documentId/preview',
-  'GET /api/publisher/admin/moderation',
 ]
 
 /** Every endpoint file, routed as Nuxt routes it: `[param]` → `:param`, method from the suffix. */
@@ -233,8 +232,6 @@ describe.skipIf(!hasDatabase)('the /api/publisher endpoints over HTTP (PostgreSQ
     const types = await call('GET', '/api/publisher/admin/types', { as: alice })
     expect(types.data.map((type: { type: string }) => type.type).sort()).toEqual(['appraisal', 'bulletin', 'landing'])
     expect((await call('GET', '/api/publisher/admin/types', { as: carol })).data).toEqual([])
-    await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: carol, type: 'appraisal', content: appraisal(carol) })
-    expect((await call('GET', '/api/publisher/admin/moderation', { as: alice })).data.total).toBe(1)
     const listed = await call('GET', '/api/publisher/admin/documents?type=bulletin&search=admin', { as: alice })
     expect(listed.data.documents.map((item: { id: string }) => item.id)).toEqual([document.id])
   })

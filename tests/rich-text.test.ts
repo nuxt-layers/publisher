@@ -7,7 +7,6 @@ import {
   exportPublisherContent,
   getPublishedDocument,
   importPublisherContent,
-  receivePublisherSubmission,
   resolvePublisherPath,
   transitionPublisherDocument,
 } from '../server/utils/publisher-server'
@@ -45,11 +44,6 @@ describe.skipIf(!hasDatabase)('formatted fields, checked against their profiles 
       .rejects.toMatchObject({ code: 'validation-failed', reason: 'not-in-profile' })
     // The same table is fine in a document field.
     await expect(createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'bulletin', content: { ...bulletin('tabled'), fields: { body: table, topic: 'general' } } })).resolves.toBeDefined()
-  })
-
-  it('refuses it in a submission', async () => {
-    await expect(receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: id(), type: 'appraisal', content: appraisal(id(), { words: table }) }))
-      .rejects.toMatchObject({ code: 'validation-failed', reason: 'not-in-profile' })
   })
 
   it('refuses it on import', async () => {

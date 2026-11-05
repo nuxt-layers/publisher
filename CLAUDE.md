@@ -1,7 +1,7 @@
 # @nuxt-layers/publisher — notes for Claude
 
 ## What this is
-Nuxt 4 foundation layer for publishing documents of types the host registers: drafts, versions and history; approval and moderation; scheduling; addresses, redirects and links; safe rich text; listings and feeds. Governed by `nuxt-layers/architecture-rules` (see `RESOURCES.md`); persistence follows ADR-0002 and ADR-0006. Not a member of the IAM suite. British spelling everywhere, including code and the manifest.
+Nuxt 4 foundation layer for publishing documents of types the host registers: drafts, versions and history; approval; scheduling; addresses, redirects and links; safe rich text; listings and feeds. Governed by `nuxt-layers/architecture-rules` (see `RESOURCES.md`); persistence follows ADR-0002 and ADR-0006. Not a member of the IAM suite. British spelling everywhere, including code and the manifest.
 
 ## Commands
 - Toolchain (ADR-0013), the same locally and in CI: Node 26.13.0 (`.node-version`), Corepack 0.36.0 (`npm install --global corepack@0.36.0`, then `corepack enable`; Node 26 does not bundle it) and pnpm 12.16.1 from `packageManager`. Install scripts run only for packages in `allowBuilds` (`pnpm-workspace.yaml`). CI uses only actions from `nuxt-layers` or GitHub, pinned by full commit SHA
@@ -26,7 +26,7 @@ Nuxt 4 foundation layer for publishing documents of types the host registers: dr
 - Formatted fields are `richTextSchema({ profile, max })` from `@nuxt-layers/rich-text` (ADR-0011), checked against their profile on every save; every other string is plain. Answers carry rich text as its safe tree, never HTML.
 - Personal-data types: consent recorded before publishing; export and erasure by the person's identifier cover every version; superseded versions follow the retention period.
 - Events and logs carry identifiers, codes, counts and times only, written to the outbox in the same transaction as the change.
-- Endpoints (`server/api/publisher/`) take the subject only from the host's resolver; parse queries and bodies strictly; call the server functions, never SQL; are wrapped in `publisherHandler`. `tests/http.test.ts` mounts every file and pins the list. Export, import, submissions, erasure, maintenance and the relay are never endpoints. The host may switch the API off (`runtimeConfig.publisher.api.enabled`); off, it answers 404 as if absent.
+- Endpoints (`server/api/publisher/`) take the subject only from the host's resolver; parse queries and bodies strictly; call the server functions, never SQL; are wrapped in `publisherHandler`. `tests/http.test.ts` mounts every file and pins the list. Export, import, erasure, maintenance and the relay are never endpoints. The host may switch the API off (`runtimeConfig.publisher.api.enabled`); off, it answers 404 as if absent.
 - Members and other layers are reached only through ports the host supplies; never import another `@nuxt-layers/*` package, except the stateless `rich-text` library (ADR-0011 §7), following its `master`.
 - Keep `docs/contracts.md`, `docs/threat-model.md` (control register), `STORAGE-REGISTER.md`, `capability.json` and `PLAN.md` in step with code, briefly.
 - Documents follow ADR-0010: external links and verified revisions appear only in `RESOURCES.md`, pinned to a commit; every other document names the entry. `CHANGELOG.md` holds no links. `scripts/check_markdown.py` enforces both.

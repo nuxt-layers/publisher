@@ -9,7 +9,6 @@ import {
   getPublishedDocument,
   importPublisherContent,
   migratePublisherDatabase,
-  receivePublisherSubmission,
   resolvePublisherPath,
   transitionPublisherDocument,
 } from '../server/utils/publisher-server'
@@ -34,7 +33,7 @@ describe.skipIf(!hasDatabase)('export and import (PostgreSQL)', () => {
     const act = (documentId: string, request: Parameters<typeof transitionPublisherDocument>[0]['request']) =>
       transitionPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), documentId, request })
 
-    // Several versions, a rename with its redirect, a link, a draft, a moderated submission and a schedule.
+    // Several versions, a rename with its redirect, a link, a draft, a person's published words and a schedule.
     const target = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'bulletin', content: bulletin('target') })
     await act(target.id, { action: 'publish', expectedVersion: 1 })
     await act(target.id, { action: 'save', expectedVersion: 1, content: bulletin('target-renamed', 'Renamed') })
@@ -46,8 +45,8 @@ describe.skipIf(!hasDatabase)('export and import (PostgreSQL)', () => {
     await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'bulletin', content: bulletin('draft', 'Just a draft') })
     const scheduled = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'bulletin', content: bulletin('soon') })
     await act(scheduled.id, { action: 'publish', expectedVersion: 1, publishAt: new Date(world.time.getTime() + 3_600_000).toISOString() })
-    const { documentId } = await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: alice, type: 'appraisal', content: appraisal(alice) })
-    await act(documentId, { action: 'moderate', expectedVersion: 1, outcome: 'accept' })
+    const { id: documentId } = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'appraisal', content: appraisal(alice) })
+    await act(documentId, { action: 'publish', expectedVersion: 1 })
 
     exported = await exportPublisherContent({ siteId: SITE })
     const database = await createTestDatabase()

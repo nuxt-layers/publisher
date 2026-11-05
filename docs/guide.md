@@ -2,7 +2,7 @@
 
 > **In short:** register your document types, fill the publisher's ports from the IAM members and your host, then call its services. The publisher stores, versions, approves, publishes and serves documents. How they look is up to you.
 
-> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 4 to 8 change it: security decisions and moderation leave, delete arrives, and composition becomes one call. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 6 to 8 change it: delete and reading addresses arrive, and composition becomes one call. Each step updates this document.
 
 The publisher is headless (ADR-0009 and ADR-0011, in [Resources](../RESOURCES.md)). The [contract](contracts.md) is the full reference.
 
@@ -10,7 +10,7 @@ The publisher is headless (ADR-0009 and ADR-0011, in [Resources](../RESOURCES.md
 
 | Service | For |
 |---|---|
-| **Server functions** | Every task: create, save, submit, publish, schedule, archive, restore, moderate, read, list, export |
+| **Server functions** | Every task: create, save, submit, publish, schedule, archive, restore, read, list, export |
 | **HTTP API** (`/api/publisher/*`) | The same tasks for browsers and other services; switch it off with `NUXT_PUBLISHER_API_ENABLED=false` |
 | **A typed client** (`usePublisher()`) | Calling the HTTP API from your own screens: data and actions only |
 | **Safe content** | Rich text returned as `rich-text`'s safe tree, which your components draw; never as HTML |
@@ -27,7 +27,7 @@ It draws nothing: no pages, routes, components or styles.
 | **Document types** | Yes | Your host | What each kind of document is (see below) |
 | **Subject resolver** | For the API | **Authentication** | Who is signed in, and how strongly |
 | **Site resolver** | For the API | **Configuration** (tenant by host name) | Which site a request is for |
-| **Access decision** | Yes | **Authorisation** | Whether someone may view drafts, edit, publish or moderate |
+| **Access decision** | Yes | **Authorisation** | Whether someone may view drafts, edit or publish |
 | **Approval** | For types needing approval | The host (later **workflow**) | Consent to publish a version |
 | **Event sink** | For the relay | Your host's event bus | Where events go |
 | **Asset resolver** | No: images are refused | Your asset store | Each image's address |
@@ -95,7 +95,7 @@ export const postsType = definePublisherDocumentType({
   fields: z.strictObject({ body: richTextSchema({ profile: 'document', max: 50_000 }), tags: z.array(z.string().max(40)).max(10) }),
   address: { kind: 'path', base: '/blog', pattern: 'date-slug' },
   listing: { listable: true, order: 'published-desc', filterable: ['tags'] },
-  lifecycle: { approval: false, moderation: false, scheduling: true },
+  lifecycle: { approval: false, scheduling: true },
 })
 ```
 
@@ -132,7 +132,6 @@ await transitionPublisherDocument({
 | `submit`, `withdraw` | Ask for approval, or take it back |
 | `publish` | Now, or at `publishAt`; optionally until `unpublishAt` |
 | `unpublish`, `archive`, `reopen` | Take it down, retire it, bring it back as a draft |
-| `moderate` | Accept or reject a submission |
 
 From a browser, the same through the client:
 

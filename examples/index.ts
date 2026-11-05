@@ -34,7 +34,7 @@ export const examplePageType = definePublisherDocumentType({
   }),
   address: { kind: 'path', base: '', pattern: 'slug' },
   listing: { listable: false, order: 'title-asc', filterable: [] },
-  lifecycle: { approval: true, moderation: false, scheduling: true },
+  lifecycle: { approval: true, scheduling: true },
 })
 
 /** Blog posts under `/blog/{YYYY}/{MM}/{DD}/{slug}`, listed and fed, filterable by tag. */
@@ -48,7 +48,7 @@ export const exampleBlogPostType = definePublisherDocumentType({
   }),
   address: { kind: 'path', base: '/blog', pattern: 'date-slug' },
   listing: { listable: true, order: 'published-desc', filterable: ['tags'] },
-  lifecycle: { approval: false, moderation: false, scheduling: true },
+  lifecycle: { approval: false, scheduling: true },
 })
 
 /** A navigation menu: never addressed, only embedded by the host's shell. */
@@ -63,10 +63,10 @@ export const exampleMenuType = definePublisherDocumentType({
     })).max(30),
   }),
   address: { kind: 'none' },
-  lifecycle: { approval: false, moderation: false, scheduling: false },
+  lifecycle: { approval: false, scheduling: false },
 })
 
-/** Customer reviews: a person's words, moderated, with consent recorded. */
+/** Customer reviews: a person's words, taken in by the host's own form as a draft and published by an editor, with consent recorded. */
 export const exampleReviewType = definePublisherDocumentType({
   type: 'review',
   label: { one: 'Review', many: 'Reviews' },
@@ -78,7 +78,7 @@ export const exampleReviewType = definePublisherDocumentType({
   }),
   address: { kind: 'none' },
   listing: { listable: true, order: 'published-desc', filterable: [] },
-  lifecycle: { approval: false, moderation: true, scheduling: false },
+  lifecycle: { approval: false, scheduling: false },
   personalData: { subjectField: 'reviewerId', consentField: 'consent', retentionDays: 400 },
 })
 

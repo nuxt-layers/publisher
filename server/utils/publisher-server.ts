@@ -75,18 +75,9 @@ export async function createPublisherDocument(input: Acting & { type: string, co
   return writing.createDocument(input)
 }
 
-/** Any action of the state machine (§5.1): save, submit, withdraw, publish, unpublish, archive, reopen, restore, moderate. */
+/** Any action of the state machine (§5.1): save, submit, withdraw, publish, unpublish, archive, reopen, restore. */
 export async function transitionPublisherDocument(input: Acting & { documentId: string, request: PublisherActionRequestInput }): Promise<PublisherDocument> {
   return writing.transitionDocument(input)
-}
-
-/**
- * A submission to a type with `moderation`, from the host's own form
- * handling (§5.3): it waits, hidden, for a moderator. `submitterId` is the
- * signed-in person, or `null`.
- */
-export async function receivePublisherSubmission(input: { siteId: string, correlationId: string, submitterId: string | null, type: string, content: PublisherContentInput }): Promise<{ documentId: string }> {
-  return writing.receiveSubmission(input)
 }
 
 /** A document's newest version, for administration. Needs `view-draft`; otherwise `forbidden`. */
@@ -97,11 +88,6 @@ export async function getPublisherDocument(input: { siteId: string, subject: Pub
 /** Documents of a type, for administration, newest change first. Needs `view-draft`. */
 export async function listPublisherDocuments(input: { siteId: string, subject: PublisherSubject, type: string, search?: string, status?: PublisherStatus, limit?: number, offset?: number }): Promise<PublisherListing> {
   return reading.listDocuments(input)
-}
-
-/** Submissions awaiting a moderator, of every type the subject may moderate. */
-export async function listPublisherModerationQueue(input: { siteId: string, subject: PublisherSubject, type?: string }): Promise<PublisherListing> {
-  return reading.listModerationQueue(input)
 }
 
 /** Every saved version, newest first. Needs `view-draft`. */

@@ -11,8 +11,6 @@ import { addressDateSchema, localeSchema, safeTextSchema, siteIdSchema, sitePath
 export const PUBLISHER_STATUSES = ['draft', 'in-review', 'scheduled', 'published', 'archived'] as const
 export type PublisherStatus = typeof PUBLISHER_STATUSES[number]
 
-export const PUBLISHER_MODERATION_STATES = ['pending', 'accepted', 'rejected'] as const
-export type PublisherModerationState = typeof PUBLISHER_MODERATION_STATES[number]
 
 const fieldsSchema = z.record(z.string().max(64), z.unknown())
 
@@ -69,7 +67,6 @@ export const publisherDocumentSchema = z.strictObject({
   publishedVersion: z.number().int().min(1).nullable(),
   /** A newer version of a published document awaiting the approval port (§5.2). */
   reviewVersion: z.number().int().min(1).nullable(),
-  moderation: z.enum(PUBLISHER_MODERATION_STATES).nullable(),
   publishAt: instantSchema.nullable(),
   unpublishAt: instantSchema.nullable(),
   createdAt: instantSchema,

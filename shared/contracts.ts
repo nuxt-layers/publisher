@@ -78,12 +78,10 @@ export type {
   PublisherContentInput,
   PublisherDocument,
   PublisherDraft,
-  PublisherModerationState,
   PublisherStatus,
   PublisherVersion,
 } from './documents'
 export {
-  PUBLISHER_MODERATION_STATES,
   PUBLISHER_STATUSES,
   publisherBacklinkSchema,
   publisherConsentSchema,

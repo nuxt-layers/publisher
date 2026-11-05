@@ -20,7 +20,7 @@ export default publisherHandler(async (event) => {
       label: declaration.label,
       address: declaration.address,
       listing: declaration.listing,
-      lifecycle: { approval: declaration.lifecycle.approval, moderation: declaration.lifecycle.moderation, scheduling: declaration.lifecycle.scheduling },
+      lifecycle: { approval: declaration.lifecycle.approval, scheduling: declaration.lifecycle.scheduling },
       personalData: declaration.personalData !== null,
       richTextFields: declaration.richTextFields,
       schema: declaration.jsonSchema,
