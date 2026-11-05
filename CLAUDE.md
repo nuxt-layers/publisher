@@ -4,6 +4,8 @@
 Nuxt 4 foundation layer for publishing documents of types the host registers: drafts, versions and history; approval and moderation; scheduling; addresses, redirects and links; safe rich text; listings and feeds. Governed by `nuxt-layers/architecture-rules` (see `RESOURCES.md`); persistence follows ADR-0002 and ADR-0006. Not a member of the IAM suite. British spelling everywhere, including code and the manifest.
 
 ## Commands
+- Toolchain (ADR-0013), the same locally and in CI: Node 26.13.0 (`.node-version`), Corepack 0.36.0 (`npm install --global corepack@0.36.0`, then `corepack enable`; Node 26 does not bundle it) and pnpm 12.16.1 from `packageManager`. Install scripts run only for packages in `allowBuilds` (`pnpm-workspace.yaml`). CI uses only actions from `nuxt-layers` or GitHub, pinned by full commit SHA
+- `minimumReleaseAge` refuses versions under a day old. If a merged update (such as a Dependabot security PR) has already locked one, regenerate the lockfile once with `pnpm install --no-frozen-lockfile --config.minimum-release-age=0`, and commit only if the lockfile diff changes nothing else. Never weaken the setting in `pnpm-workspace.yaml`
 - `pnpm install`, then `pnpm dev:prepare` for Nuxt types. Never add a `prepare`/`postinstall` script
 - `pnpm check` = `nuxt typecheck` + `vitest run`; run it after every code change. Single file: `pnpm vitest run tests/<name>.test.ts`
 - Database suites need `PUBLISHER_TEST_DATABASE_URL` (admin URL of a local, disposable PostgreSQL 16); they skip locally without it and fail in CI

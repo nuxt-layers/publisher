@@ -39,7 +39,7 @@ A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Au
 
 ## Development
 
-`pnpm install`, `pnpm dev:prepare`, then `pnpm check` (type check and tests). Database suites need `PUBLISHER_TEST_DATABASE_URL`, the admin URL of a disposable PostgreSQL 16. `python3 scripts/check_markdown.py` checks the documentation.
+Use the Node in `.node-version` with Corepack, which supplies the pnpm in `packageManager`: `corepack enable`, `pnpm install`, `pnpm dev:prepare`, then `pnpm check` (type check and tests). Database suites need `PUBLISHER_TEST_DATABASE_URL`, the admin URL of a disposable PostgreSQL 16. `python3 scripts/check_markdown.py` checks the documentation.
 
 ## Governing decisions
 
