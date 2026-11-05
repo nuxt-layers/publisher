@@ -1,5 +1,5 @@
 /** The publisher's contract version (docs/contracts.md §17): it changes when the interface does. */
-export const PUBLISHER_CONTRACT_VERSION = 1
+export const PUBLISHER_CONTRACT_VERSION = 2
 
 /**
  * Public contract for `@nuxt-layers/publisher`.
@@ -52,7 +52,6 @@ export type {
   PublisherOrder,
   PublisherPermissionAction,
   PublisherRegistry,
-  PublisherRisk,
   PublisherTypeDeclaration,
   PublisherTypeDeclarationInput,
 } from './types'
@@ -64,14 +63,10 @@ export {
   PUBLISHER_MAX_RICH_TEXT_FIELDS,
   PUBLISHER_ORDERS,
   PUBLISHER_PERMISSION_ACTIONS,
-  PUBLISHER_PERSONAL_DATA_RISK_FLOOR,
   PUBLISHER_RETENTION,
-  PUBLISHER_RISK_FLOOR,
-  PUBLISHER_RISKS,
   publisherPermission,
   publisherPermissions,
   publisherTypeDeclarationSchema,
-  riskRank,
   TYPE_KEY_PATTERN,
   typeKeySchema,
 } from './types'
@@ -102,14 +97,10 @@ export type {
   PublisherAction,
   PublisherActionRequest,
   PublisherActionRequestInput,
-  PublisherAssurance,
   PublisherSubject,
   PublisherTransition,
 } from './lifecycle'
 export {
-  APPROVAL_FLOOR,
-  CRITICAL_FRESHNESS_MINUTES,
-  meetsStepUp,
   PUBLISHER_ACTIONS,
   PUBLISHER_SCHEDULED_TRANSITIONS,
   PUBLISHER_TRANSITIONS,
@@ -145,9 +136,9 @@ export type { PublisherEvent, PublisherEventType } from './events'
 export { publisherEventSchema } from './events'
 
 export type {
-  Consistency,
   PostgresPoolLike,
   PublisherAccessDecision,
+  PublisherResource,
   PublisherApproval,
   PublisherApprovalState,
   PublisherAssetResolver,

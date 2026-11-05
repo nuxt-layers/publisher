@@ -103,7 +103,6 @@ describe.skipIf(!hasDatabase)('the /api/publisher endpoints over HTTP (PostgreSQ
   let resolverFails = false
   const alice = id()
   const carol = id()
-  let weak = new Set<string>()
 
   async function call(method: string, url: string, options: { as?: string, body?: unknown, origin?: string | null } = {}) {
     const target = new URL(url, 'http://site.test')
@@ -139,7 +138,6 @@ describe.skipIf(!hasDatabase)('the /api/publisher endpoints over HTTP (PostgreSQ
   beforeEach(async () => {
     world = await harness.reset()
     resolverFails = false
-    weak = new Set()
     for (const type of ['landing', 'appraisal', 'bulletin']) world.grantAll(alice, type)
     // Sites by host name, as Configuration's tenant lookup would answer them.
     providePublisherSiteResolver({
@@ -152,7 +150,7 @@ describe.skipIf(!hasDatabase)('the /api/publisher endpoints over HTTP (PostgreSQ
       async resolve(event) {
         if (resolverFails) throw new Error('authentication is down')
         const identityId = getRequestHeader(event as H3Event, 'x-test-subject')
-        return identityId ? person(identityId, new Date(), weak.has(identityId) ? 'weak' : 'strong') : null
+        return identityId ? person(identityId, new Date()) : null
       },
     })
   })
@@ -216,11 +214,11 @@ describe.skipIf(!hasDatabase)('the /api/publisher endpoints over HTTP (PostgreSQ
     expect((await call('GET', `/api/publisher/admin/documents/${document.id}/history`, { as: alice })).data).toHaveLength(1)
     expect((await call('GET', `/api/publisher/admin/documents/${document.id}/backlinks`, { as: alice })).data).toEqual([])
     expect((await call('GET', `/api/publisher/admin/documents/${document.id}/preview`, { as: alice })).data).toMatchObject({ preview: true })
-    // A publish permission at `high` needs aal2.
+    // Authorisation asks for a step-up: the API answers `insufficient-assurance`.
     const page = await createPublisherDocument({ siteId: SITE, subject: person(alice, world.time), correlationId: id(), type: 'landing', content: { locale: 'en-GB', title: 'L', slug: 'l', fields: { intro: 'x', section: 'support', blocks: [] } } })
     await transitionPublisherDocument({ siteId: SITE, subject: person(alice, world.time), correlationId: id(), documentId: page.id, request: { action: 'submit', expectedVersion: 1 } })
-    world.approve(world.approvalFor(page.id)!, id())
-    weak.add(alice)
+    world.approve(world.approvalFor(page.id)!)
+    world.stepUp.add(`${alice}|publisher.landing.publish`)
     expect((await call('POST', `/api/publisher/admin/documents/${page.id}/actions`, { as: alice, body: { action: 'publish', expectedVersion: 1 } })).data).toMatchObject({ code: 'insufficient-assurance' })
   })
 

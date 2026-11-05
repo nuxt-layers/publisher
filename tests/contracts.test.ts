@@ -41,29 +41,29 @@ const contractFiles = files('shared', /\.ts$/)
 const layerFiles = [...files('app'), ...files('server'), ...files('shared'), 'nuxt.config.ts']
 
 /**
- * Contract version 1 (docs/contracts.md §17). Removing or narrowing any of
+ * Contract version 2 (docs/contracts.md §17). Removing or narrowing any of
  * these is a breaking change: stated in the changelog, with the contract version raised.
  */
-const VERSION_1_EXPORTS = [
-  'APPROVAL_FLOOR', 'ASSET_ID_PATTERN', 'CRITICAL_FRESHNESS_MINUTES', 'FIELD_NAME_PATTERN',
+const CONTRACT_EXPORTS = [
+  'ASSET_ID_PATTERN', 'FIELD_NAME_PATTERN',
   'PUBLISHER_ACTIONS', 'PUBLISHER_BUNDLE_FORMAT', 'PUBLISHER_CONFLICT_REASONS', 'PUBLISHER_CONTENT_PROBLEMS', 'PUBLISHER_CONTRACT_VERSION',
   'PUBLISHER_ERROR_CODES', 'PUBLISHER_ERROR_STATUS', 'PUBLISHER_FEED_FORMATS', 'PUBLISHER_MAX_RICH_TEXT_FIELDS', 'PUBLISHER_MODERATION_STATES',
-  'PUBLISHER_ORDERS', 'PUBLISHER_PERMISSION_ACTIONS', 'PUBLISHER_PERSONAL_DATA_RISK_FLOOR', 'PUBLISHER_RETENTION', 'PUBLISHER_RISKS', 'PUBLISHER_RISK_FLOOR',
+  'PUBLISHER_ORDERS', 'PUBLISHER_PERMISSION_ACTIONS', 'PUBLISHER_RETENTION', 
   'PUBLISHER_SCHEDULED_TRANSITIONS', 'PUBLISHER_STATUSES', 'PUBLISHER_TRANSITIONS', 'PublisherCompositionError', 'PublisherFailure', 'REASON_CODE_PATTERN',
   'SITE_ID_PATTERN', 'SLUG_PATTERN', 'TYPE_KEY_PATTERN', 'UUID_PATTERN', 'UUID_V7_PATTERN', 'addressDateSchema',
   'addressRuleSchema', 'assetIdSchema', 'buildPublisherRegistry', 'canonicalJson', 'codeSchema', 'correlationIdSchema',
   'definePublisherDocumentType', 'digestSchema', 'httpsUrlSchema', 'identifierSchema', 'instantSchema', 'localeSchema',
-  'meetsStepUp', 'publisherActionRequestSchema', 'publisherBacklinkSchema', 'publisherBundleDocumentSchema', 'publisherBundleSchema',
+  'publisherActionRequestSchema', 'publisherBacklinkSchema', 'publisherBundleDocumentSchema', 'publisherBundleSchema',
   'publisherConsentSchema', 'publisherContentSchema', 'publisherDocumentSchema', 'publisherDraftSchema', 'publisherEventSchema', 'publisherHeadSchema',
   'publisherListingQuerySchema', 'publisherListingSchema', 'publisherPermission', 'publisherPermissions', 'publisherPersonExportSchema', 'publisherRenderedSchema',
   'publisherResolutionSchema', 'publisherResolvedLinksSchema', 'publisherSitemapEntrySchema', 'publisherTypeDeclarationSchema', 'publisherVersionSchema', 'reasonCodeSchema',
-  'riskRank', 'safeTextSchema', 'siteIdSchema', 'sitePathSchema', 'slugSchema', 'subjectSchema', 'typeKeySchema',
+  'safeTextSchema', 'siteIdSchema', 'sitePathSchema', 'slugSchema', 'subjectSchema', 'typeKeySchema',
 ]
 
 describe('the public contract', () => {
-  it('is contract version 1, and exports everything version 1 does', () => {
-    expect(contracts.PUBLISHER_CONTRACT_VERSION).toBe(1)
-    expect(Object.keys(contracts)).toEqual(expect.arrayContaining(VERSION_1_EXPORTS))
+  it('is contract version 2, and exports everything version 2 does', () => {
+    expect(contracts.PUBLISHER_CONTRACT_VERSION).toBe(2)
+    expect(Object.keys(contracts)).toEqual(expect.arrayContaining(CONTRACT_EXPORTS))
   })
 
   it('imports nothing but zod, the shared rich-text format and its own modules', () => {
@@ -104,14 +104,11 @@ describe('the public contract', () => {
     expect(contracts.publisherEventSchema.safeParse({ ...envelope, type: 'publisher.address-changed', data: { siteId: 'alpha', documentId: data.documentId, type: 'x', redirectRecorded: true, from: '/old' } }).success).toBe(false)
   })
 
-  it('needs a second person for high and critical publishing, and step-up to the risk', () => {
-    expect(contracts.APPROVAL_FLOOR).toEqual({ low: 0, medium: 0, high: 1, critical: 1 })
-    const now = new Date('2026-10-21T12:00:00Z')
-    const at = (minutesAgo: number) => new Date(now.getTime() - minutesAgo * 60_000).toISOString()
-    expect(contracts.meetsStepUp('medium', { level: 'aal1', phishingResistant: false, authenticatedAt: at(600) }, now)).toBe(true)
-    expect(contracts.meetsStepUp('high', { level: 'aal1', phishingResistant: false, authenticatedAt: at(0) }, now)).toBe(false)
-    expect(contracts.meetsStepUp('critical', { level: 'aal2', phishingResistant: true, authenticatedAt: at(16) }, now)).toBe(false)
-    expect(contracts.meetsStepUp('critical', { level: 'aal2', phishingResistant: true, authenticatedAt: at(5) }, now)).toBe(true)
+  it('decides nothing about risk, step-up or approvers: Authorisation and the approvals process do', () => {
+    for (const name of ['APPROVAL_FLOOR', 'CRITICAL_FRESHNESS_MINUTES', 'PUBLISHER_RISKS', 'PUBLISHER_RISK_FLOOR', 'PUBLISHER_PERSONAL_DATA_RISK_FLOOR', 'meetsStepUp', 'riskRank']) {
+      expect(Object.keys(contracts), name).not.toContain(name)
+    }
+    expect(contracts.publisherTypeDeclarationSchema.safeParse({ ...bulletinType, lifecycle: { ...bulletinType.lifecycle, risks: { publish: 'high' } } }).success).toBe(false)
   })
 
   it('serves every action from one state machine, each guarded by one of the four permissions', () => {
@@ -152,10 +149,6 @@ describe('registration', () => {
   it('registers types the layer has never heard of, filling in the defaults', () => {
     const built = registry()
     expect([...built.keys()].sort()).toEqual(['appraisal', 'bulletin', 'landing'])
-    expect(built.get('bulletin')!.risks).toEqual({ 'view-draft': 'low', 'edit': 'low', 'publish': 'medium', 'moderate': 'medium' })
-    expect(built.get('landing')!.risks.publish).toBe('high')
-    // A personal-data type's drafts and edits are at least medium.
-    expect(built.get('appraisal')!.risks['view-draft']).toBe('medium')
     expect(built.get('landing')!.jsonSchema).toMatchObject({ type: 'object', additionalProperties: false })
   })
 
@@ -173,23 +166,18 @@ describe('registration', () => {
     expect(contracts.buildPublisherRegistry(EXAMPLE_DOCUMENT_TYPES).size).toBe(EXAMPLE_DOCUMENT_TYPES.length)
   })
 
-  it('derives four permissions per type, at the declared risks', () => {
+  it('derives four permissions per type; Authorisation's catalogue sets their risk', () => {
     expect(contracts.publisherPermission('landing', 'view-draft')).toBe('publisher.landing.view-draft')
     expect(contracts.publisherPermissions(registry())).toEqual(expect.arrayContaining([
-      { permission: 'publisher.landing.publish', risk: 'high', type: 'landing', action: 'publish' },
-      { permission: 'publisher.appraisal.moderate', risk: 'medium', type: 'appraisal', action: 'moderate' },
-      { permission: 'publisher.bulletin.edit', risk: 'low', type: 'bulletin', action: 'edit' },
+      { permission: 'publisher.landing.publish', type: 'landing', action: 'publish' },
+      { permission: 'publisher.appraisal.moderate', type: 'appraisal', action: 'moderate' },
+      { permission: 'publisher.bulletin.edit', type: 'bulletin', action: 'edit' },
     ]))
     expect(contracts.publisherPermissions(registry())).toHaveLength(12)
   })
 
   it('fails closed on a duplicate type', () => {
     expect(() => contracts.buildPublisherRegistry([landingType, { ...bulletinType, type: 'landing' }])).toThrow(/twice/)
-  })
-
-  it('fails closed on a risk below the floor', () => {
-    expect(() => contracts.buildPublisherRegistry([{ ...bulletinType, lifecycle: { ...bulletinType.lifecycle, risks: { publish: 'low' } } }])).toThrow(/floor/)
-    expect(() => contracts.buildPublisherRegistry([{ ...appraisalType, lifecycle: { ...appraisalType.lifecycle, risks: { 'view-draft': 'low' } } }])).toThrow(/floor/)
   })
 
   it('fails closed on a declaration invalid against the meta-schema', () => {

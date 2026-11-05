@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "classification": "platform",
   "provides": [
-    { "capability": "PublisherService", "contractVersion": "1" }
+    { "capability": "PublisherService", "contractVersion": "2" }
   ],
   "requires": [
     { "capability": "Database", "contractVersion": "1", "optional": false },

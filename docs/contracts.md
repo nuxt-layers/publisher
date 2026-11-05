@@ -40,10 +40,10 @@ Registered once at start-up with `providePublisherDocumentTypes(declarations)`. 
 | `fields` | A zod schema for the type's own content: a strict object (`z.strictObject`); every string, array and record within it bounded. Formatted fields are `richTextSchema({ profile, max })` (§6); their `doc:` links are extracted (§7.3) |
 | `address` | `{ kind: 'none' }` for documents only ever embedded or listed; or `{ kind: 'path', base, pattern }`, `base` being `''` (the site's root) or a site path without a trailing `/`, and `pattern` `slug` (`{base}/{slug}`) or `date-slug` (`{base}/{YYYY}/{MM}/{DD}/{slug}`) |
 | `listing` | `{ listable, order, filterable }`: whether the type is listed and fed (§8); its default order (`published-desc`, `published-asc`, `title-asc`, `updated-desc`); top-level fields readers may filter on, each a bounded string, an enumeration or an array of either. Default: not listable |
-| `lifecycle` | `{ approval, moderation, scheduling, risks }`: whether publishing needs the approval port's consent (§5.2); whether submissions are moderated (§5.3; not with `approval`); whether `publishAt` and `unpublishAt` may be set (§5.4); and each permission's risk (§10), never below the floor. Default: all `false`, risks at the floor |
+| `lifecycle` | `{ approval, moderation, scheduling }`: whether publishing needs the approval port's consent (§5.2); whether submissions are moderated (§5.3; not with `approval`); whether `publishAt` and `unpublishAt` may be set (§5.4). Default: all `false` |
 | `personalData` | `null`, or `{ subjectField, consentField, retentionDays }` (§9): the field holding the person's identity identifier (a UUIDv7); the field holding their consent (`publisherConsentSchema`, optional in the schema so a draft may lack it); and how long superseded versions are kept, 30 to 2,190 days |
 
-A declaration is refused at start-up, failing closed, when it is invalid against the meta-schema; when its `fields` is not a strict object or holds an unbounded string, array or record; when it has more than 20 formatted fields; when a filterable, subject or consent field does not exist or has the wrong shape; when it declares both `approval` and `moderation`; or when a risk is below the floor. Two declarations of one `type` are refused likewise. `definePublisherDocumentType` types a declaration without registering it.
+A declaration is refused at start-up, failing closed, when it is invalid against the meta-schema; when its `fields` is not a strict object or holds an unbounded string, array or record; when it has more than 20 formatted fields; when a filterable, subject or consent field does not exist or has the wrong shape; or when it declares both `approval` and `moderation`. Two declarations of one `type` are refused likewise. `definePublisherDocumentType` types a declaration without registering it.
 
 ### 3.2 Addresses
 
@@ -54,7 +54,7 @@ A document of an addressed type carries a `slug` (up to 8 segments of `[a-z0-9]`
 - The layer registers no type, and its own source names none (`tests/contracts.test.ts` searches it). Reference declarations are exported from `@nuxt-layers/publisher/examples` as examples only.
 - Adding a type is a registration, never a change to the layer: the same code stores, versions, reviews, publishes, lists, feeds and exports every type (`tests/lifecycle.test.ts` proves it with types defined only in the tests).
 - A document of a type the host does not register is refused (`validation-failed`, `unknown-type`). If the database holds documents of a type the host no longer registers, `checkPublisherComposition()` fails at start-up and every server function fails closed (`unavailable`) rather than serve them as something else.
-- Raising a type's risk, adding a field, or making a field optional applies to new versions; stored versions keep the content they were saved with and are checked again only when they are published or restored.
+- Adding a field, or making a field optional applies to new versions; stored versions keep the content they were saved with and are checked again only when they are published or restored.
 
 ### 3.4 Sites
 
@@ -97,14 +97,14 @@ One state machine for every type (`PUBLISHER_TRANSITIONS`). Each action names th
 | `restore` | `edit` | as `save` | A new version with an earlier version's content (`restoredFrom`) |
 | `moderate` | `moderate` | `in-review` with `moderation: pending` → `published` (accept) or `archived` (reject) | Types with `moderation` only (§5.3) |
 
-An action not allowed from the current status is `conflict`, `invalid-transition`. Only the published version is public (§8.4). Every action is checked through the access-decision port at `strong` consistency, and a user short of the step-up for the permission's risk (`meetsStepUp`: `high` aal2; `critical` aal2, phishing resistant, within 15 minutes) is refused `insufficient-assurance`.
+An action not allowed from the current status is `conflict`, `invalid-transition`. Only the published version is public (§8.4). Every action asks the access-decision port (§11) whether the user may take it. Refused, it is `forbidden`; when Authorisation answers `reason: 'step-up'`, `insufficient-assurance`, so the user can sign in again. Risk and step-up are Authorisation's alone.
 
 ### 5.2 Approval
 
 A type with `lifecycle.approval` never publishes without the approval port's consent, which the host supplies (§11):
 
-- `submit` asks `approval.request` about the newest version, with its **digest** (SHA-256 of the canonical JSON of the document's id, type, version and content), the publish permission, its risk, the requester and the approvers needed beyond the requester (`APPROVAL_FLOOR`: none for `low` and `medium`, one for `high` and `critical`), as in Configuration.
-- `publish` asks `approval.decision` and publishes only when the answer is `approved`, bound to the same digest as the version being published, with enough approvers other than the requester and the publisher. Otherwise `conflict`, `approval-missing`; publishing before submitting is `review-required`.
+- `submit` asks `approval.request` about the newest version, with its **digest** (SHA-256 of the canonical JSON of the document's id, type, version and content), the publish permission and the requester. Who may approve, how many must, and that nobody approves their own request are the approvals process's rules.
+- `publish` asks `approval.decision` and publishes only when the answer is `approved`, bound to the same digest as the version being published. Otherwise `conflict`, `approval-missing`; publishing before submitting is `review-required`.
 - Saving after submitting asks again: the consent was to the old version's digest.
 - Without the approval port, every type with `approval` fails closed (`unavailable`), and so does `checkPublisherComposition()`.
 
@@ -199,16 +199,14 @@ For types declaring `personalData`:
 
 ## 10. Permissions
 
-Derived for each registered type (`publisherPermissions(registry)`), for the host to add to Authorisation's catalogue:
+Derived for each registered type (`publisherPermissions(registry)`), for the host to add to Authorisation's catalogue, which sets each one's risk and step-up:
 
-| Permission | Floor | Personal-data floor | Allows |
-|---|---|---|---|
-| `publisher.<type>.view-draft` | `low` | `medium` | Reading drafts, history, links and administration lists of the type; previews |
-| `publisher.<type>.edit` | `low` | `medium` | Creating, saving, submitting, withdrawing, reopening and restoring |
-| `publisher.<type>.publish` | `medium` | `medium` | Publishing, scheduling, unpublishing and archiving |
-| `publisher.<type>.moderate` | `medium` | `medium` | Accepting and rejecting submissions |
-
-A type's `lifecycle.risks` may raise any of them; never lower (refused at start-up). The risk sets the step-up (§5.1) and, for `publish`, the approvers needed (§5.2).
+| Permission | Allows |
+|---|---|
+| `publisher.<type>.view-draft` | Reading drafts, history, links and administration lists of the type; previews |
+| `publisher.<type>.edit` | Creating, saving, submitting, withdrawing, reopening and restoring |
+| `publisher.<type>.publish` | Publishing, scheduling, unpublishing and archiving |
+| `publisher.<type>.moderate` | Accepting and rejecting submissions |
 
 ## 11. Ports
 
@@ -216,11 +214,11 @@ A type's `lifecycle.risks` may raise any of them; never lower (refused at start-
 |---|---|---|---|
 | Document types (`providePublisherDocumentTypes`) | Yes | Host | The registered types (§3) |
 | `PublisherDatabase` | Yes | Host | PostgreSQL pool (runtime role), schema (default `publisher`), and optionally the migration pool and runtime role, under ADR-0002 and ADR-0006 |
-| `PublisherSubjectResolver` | For the endpoints | Authentication, through the host | The signed-in user, its `kind` and assurance, or `null` |
+| `PublisherSubjectResolver` | For the endpoints | Authentication, through the host | The signed-in user (`identityId`, plus anything else, passed to the access decision untouched), or `null` |
 | `PublisherSiteResolver` | For the endpoints | Host, e.g. from Configuration's tenant by host name | The request's site (§3.4), or `null`; a host with one site answers a constant |
-| `PublisherAccessDecision` | Yes | Authorisation, through the host | Whether an identity holds a permission (§10) now, for a type and optionally a document |
+| `PublisherAccessDecision` | Yes | Authorisation, through the host | `decide(user, action, { siteId, type, documentId })` → `{ allowed, reason? }`: whether the user may take the action (a permission, §10) now. Risk and step-up are its own |
 | `PublisherApproval` | For types with `approval` | The host (later `workflow`) | Asking for and reading consent to publish a version (§5.2) |
-| `PublisherClock` | No: the system clock without it | Host (the suite's one clock) | Schedules, retention and assurance freshness |
+| `PublisherClock` | No: the system clock without it | Host (the suite's one clock) | Schedules and retention |
 | `PublisherEventSink` | For the relay | Host | Where `relayPublisherOutbox` sends events (§12) |
 | `PublisherAssetResolver` | No: images are refused without it | The host's asset store | Each `asset:` id's address, or `null` |
 | `PublisherTitleTemplate` | No: a document's title alone | Host, e.g. from Configuration's `seo.title-template` | Page and feed titles |
@@ -296,7 +294,7 @@ Export, import, submissions, erasure, maintenance and the relay are never endpoi
 | `unauthenticated` | 401 | No signed-in user |
 | `forbidden` | 403 | Refused. Never says whether a document exists, or which rule refused |
 | `not-found` | 404 | Nothing a reader may see here: missing, draft or erased alike |
-| `insufficient-assurance` | 403 | The user must step up to the permission's risk |
+| `insufficient-assurance` | 403 | Authorisation asks the user to sign in again first (`reason: 'step-up'`) |
 | `validation-failed` | 400 | Malformed; one problem code (`PUBLISHER_CONTENT_PROBLEMS`, or a field schema's code), never a value |
 | `conflict` | 409 | A rule refused it (`PUBLISHER_CONFLICT_REASONS`) |
 | `unavailable` | 503 | Database, registration, port or clock failure. Fails closed |
@@ -331,7 +329,7 @@ The host, a kit or `ui` draws everything:
 
 ## 17. Versioning
 
-Contract version 1 (`PUBLISHER_CONTRACT_VERSION`). While the platform is in development there are no releases or tags, and hosts follow `master` (ADR-0008). The contract changes only by reviewed pull request, every change stated in the changelog and tested. Adding a port, an optional declaration field, an export, an event or a lifecycle feature is compatible; removing or narrowing a type, function, endpoint, event or port, lowering a floor, or a stricter rule a host must act on is breaking and raises the contract version. `tests/contracts.test.ts` pins version 1's exports.
+Contract version 2 (`PUBLISHER_CONTRACT_VERSION`): version 1 decided risk, step-up and approver counts itself. While the platform is in development there are no releases or tags, and hosts follow `master` (ADR-0008). The contract changes only by reviewed pull request, every change stated in the changelog and tested. Adding a port, an optional declaration field, an export, an event or a lifecycle feature is compatible; removing or narrowing a type, function, endpoint, event or port, lowering a floor, or a stricter rule a host must act on is breaking and raises the contract version. `tests/contracts.test.ts` pins version 2's exports.
 
 ## 18. Decisions
 

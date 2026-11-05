@@ -30,12 +30,13 @@ export function id(): string {
 interface ApprovalRecord {
   input: Parameters<PublisherApproval['request']>[0]
   state: PublisherApprovalState
-  approverIds: string[]
 }
 
 export class World {
   /** `identityId|permission` on every site, or `siteId|identityId|permission` on one. */
   readonly grants = new Set<string>()
+  /** `identityId|permission` for which Authorisation asks the user to step up first. */
+  readonly stepUp = new Set<string>()
   /** The site of every question the access-decision port was asked. */
   readonly askedSites: string[] = []
   readonly approvals = new Map<string, ApprovalRecord>()
@@ -71,11 +72,9 @@ export class World {
     this.time = new Date(this.time.getTime() + minutes * 60_000)
   }
 
-  /** The approvals process approves, as these people. */
-  approve(approvalId: string, ...approverIds: string[]): void {
-    const record = this.approvals.get(approvalId)!
-    record.state = 'approved'
-    record.approverIds.push(...approverIds)
+  /** The approvals process approves, by its own rules. */
+  approve(approvalId: string): void {
+    this.approvals.get(approvalId)!.state = 'approved'
   }
 
   reject(approvalId: string): void {
@@ -88,10 +87,12 @@ export class World {
   }
 
   readonly access: PublisherAccessDecision = {
-    allows: async ({ identityId, permission, siteId }) => {
+    decide: async ({ identityId }, action, { siteId }) => {
       this.check()
       this.askedSites.push(siteId)
-      return this.grants.has(`${identityId}|${permission}`) || this.grants.has(`${siteId}|${identityId}|${permission}`)
+      const held = this.grants.has(`${identityId}|${action}`) || this.grants.has(`${siteId}|${identityId}|${action}`)
+      if (held && this.stepUp.has(`${identityId}|${action}`)) return { allowed: false, reason: 'step-up' }
+      return { allowed: held }
     },
   }
 
@@ -99,14 +100,14 @@ export class World {
     request: async (input) => {
       this.check()
       const approvalId = id()
-      this.approvals.set(approvalId, { input, state: 'pending', approverIds: [] })
+      this.approvals.set(approvalId, { input, state: 'pending' })
       return { approvalId }
     },
     decision: async ({ approvalId }) => {
       this.check()
       const record = this.approvals.get(approvalId)
       if (!record) throw new Error('unknown approval')
-      return { state: record.state, digest: record.input.digest, approverIds: record.approverIds }
+      return { state: record.state, digest: record.input.digest }
     },
   }
 
@@ -129,13 +130,10 @@ export class World {
   readonly titleTemplate: PublisherTitleTemplate = { format: ({ title }) => `${title} · Test site` }
 }
 
-/** A signed-in person; `strong` is aal2, phishing resistant, just now. */
-export function person(identityId: string, at: Date, strength: 'weak' | 'strong' = 'strong'): PublisherSubject {
+/** A signed-in user, with whatever else a resolver might add, which Publisher passes on untouched. */
+export function person(identityId: string, at: Date): PublisherSubject {
   return {
     identityId,
-    kind: 'person',
-    assurance: strength === 'strong'
-      ? { level: 'aal2', phishingResistant: true, authenticatedAt: at.toISOString() }
-      : { level: 'aal1', phishingResistant: false, authenticatedAt: at.toISOString() },
+    assurance: { level: 'aal2', phishingResistant: true, authenticatedAt: at.toISOString() },
   }
 }

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Contract version 2.** Publisher no longer decides risk, step-up or approvers. The access-decision port is `decide(user, action, { siteId, type, documentId })` → `{ allowed, reason? }`, and `reason: 'step-up'` answers `insufficient-assurance`. The approval port drops `risk`, `requiredApprovals` and `approverIds`: Publisher publishes only on approval of the exact digest. Removed: `lifecycle.risks`, `PUBLISHER_RISKS`, `PUBLISHER_RISK_FLOOR`, `PUBLISHER_PERSONAL_DATA_RISK_FLOOR`, `riskRank`, `meetsStepUp`, `APPROVAL_FLOOR`, `CRITICAL_FRESHNESS_MINUTES`, `PublisherAssurance` and `Consistency`; the user is `{ identityId }` plus anything the resolver adds, passed to `decide` untouched.
 - Documents: terms defined once in the README (user, tenant, site, type, document, version, status, address); "user" replaces "subject" in prose; documents describing today's code say so. Documentation only.
 - CI installs with `--no-frozen-lockfile` while the platform is in development, and shows any lockfile drift.
 - Toolchain (ADR-0013): Node 26.13.0 (`.node-version`), Corepack 0.36.0 and pnpm 12.16.1; install scripts only for packages in `allowBuilds` (esbuild); CI caches the pnpm store. Development only: hosts' requirements are unchanged.

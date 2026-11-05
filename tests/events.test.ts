@@ -42,7 +42,7 @@ describe.skipIf(!hasDatabase)('events (PostgreSQL)', () => {
     const secret = 'Confidential launch of the Zephyr'
     const page = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'landing', content: landing('zephyr-launch', secret, secret) })
     await act(page.id, { action: 'submit', expectedVersion: 1 })
-    world.approve(world.approvalFor(page.id)!, id())
+    world.approve(world.approvalFor(page.id)!)
     await act(page.id, { action: 'publish', expectedVersion: 1, publishAt: new Date(world.time.getTime() + 60_000).toISOString() })
     world.advance(1)
     await runPublisherMaintenance()

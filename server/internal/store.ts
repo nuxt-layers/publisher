@@ -12,7 +12,6 @@ import type {
 } from '../../shared/contracts'
 import {
   canonicalJson,
-  meetsStepUp,
   publisherContentSchema,
   publisherDocumentSchema,
   publisherEventSchema,
@@ -154,22 +153,30 @@ export function siteOf(siteId: unknown): string {
   return parsed.data
 }
 
-/** Whether the subject holds the type's permission on the site now. A failing port is `unavailable`. */
-export async function allows(subject: PublisherSubject | null | undefined, siteId: string, type: string, action: PublisherPermissionAction, documentId: string | null): Promise<boolean> {
-  if (!subject) return false
+/** Authorisation's answer for the user, the action and the resource. Anything but an explicit `allowed: true` refuses; a failing port is `unavailable`. */
+async function decision(subject: PublisherSubject | null | undefined, siteId: string, type: string, action: PublisherPermissionAction, documentId: string | null): Promise<{ allowed: boolean, reason?: string }> {
+  if (!subject) return { allowed: false }
   const access = usePublisherAccessDecision()
+  let answer: { allowed?: unknown, reason?: unknown } | null | undefined
   try {
-    return await access.allows({ identityId: subject.identityId, permission: publisherPermission(type, action), siteId, type, documentId, consistency: 'strong' }) === true
+    answer = await access.decide(subject, publisherPermission(type, action), { siteId, type, documentId })
   }
   catch {
     throw new PublisherFailure('unavailable', 'access-decision-failed')
   }
+  return { allowed: answer?.allowed === true, reason: typeof answer?.reason === 'string' ? answer.reason : undefined }
 }
 
-/** Refuses without the permission (`forbidden`), then without the step-up its risk needs. */
+/** Whether the user may take the action now. */
+export async function allows(subject: PublisherSubject | null | undefined, siteId: string, type: string, action: PublisherPermissionAction, documentId: string | null): Promise<boolean> {
+  return (await decision(subject, siteId, type, action, documentId)).allowed
+}
+
+/** Refuses unless allowed: `insufficient-assurance` when Authorisation asks for a step-up, otherwise `forbidden`. */
 export async function authorise(subject: PublisherSubject, siteId: string, type: string, action: PublisherPermissionAction, documentId: string | null): Promise<void> {
-  if (!await allows(subject, siteId, type, action, documentId)) throw new PublisherFailure('forbidden')
-  if (!meetsStepUp(declarationOf(type).risks[action], subject.assurance, now())) throw new PublisherFailure('insufficient-assurance')
+  const answer = await decision(subject, siteId, type, action, documentId)
+  if (answer.allowed) return
+  throw new PublisherFailure(answer.reason === 'step-up' ? 'insufficient-assurance' : 'forbidden')
 }
 
 function issueCode(issues: readonly { message: string }[]): string | undefined {

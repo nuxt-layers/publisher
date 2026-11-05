@@ -27,7 +27,7 @@ export const landingType = definePublisherDocumentType({
   }),
   address: { kind: 'path', base: '', pattern: 'slug' },
   listing: { listable: true, order: 'title-asc', filterable: ['section'] },
-  lifecycle: { approval: true, moderation: false, scheduling: true, risks: { publish: 'high' } },
+  lifecycle: { approval: true, moderation: false, scheduling: true },
 })
 
 /** Review-like: a person's rating and words, moderated, consent recorded, no address of its own. */

@@ -41,7 +41,7 @@ describe.skipIf(!hasDatabase)('export and import (PostgreSQL)', () => {
     await act(target.id, { action: 'publish', expectedVersion: 2 })
     const page = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'landing', content: landing('welcome', 'Welcome', 'Welcome.', `See [the bulletin](doc:${target.id}).`) })
     await act(page.id, { action: 'submit', expectedVersion: 1 })
-    world.approve(world.approvalFor(page.id)!, id())
+    world.approve(world.approvalFor(page.id)!)
     await act(page.id, { action: 'publish', expectedVersion: 1 })
     await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'bulletin', content: bulletin('draft', 'Just a draft') })
     const scheduled = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'bulletin', content: bulletin('soon') })

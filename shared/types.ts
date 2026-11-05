@@ -8,33 +8,9 @@ import { safeTextSchema, sitePathSchema } from './values'
  * adding one is a registration, never a change to the layer.
  */
 
-/** Risk levels, in Authorisation's catalogue's sense. */
-export const PUBLISHER_RISKS = ['low', 'medium', 'high', 'critical'] as const
-export type PublisherRisk = typeof PUBLISHER_RISKS[number]
-
-export function riskRank(risk: PublisherRisk): number {
-  return PUBLISHER_RISKS.indexOf(risk)
-}
-
 /** What a permission lets its holder do to documents of one type (§10). */
 export const PUBLISHER_PERMISSION_ACTIONS = ['view-draft', 'edit', 'publish', 'moderate'] as const
 export type PublisherPermissionAction = typeof PUBLISHER_PERMISSION_ACTIONS[number]
-
-/** The lowest risk a type may declare for each permission. */
-export const PUBLISHER_RISK_FLOOR: Readonly<Record<PublisherPermissionAction, PublisherRisk>> = {
-  'view-draft': 'low',
-  'edit': 'low',
-  'publish': 'medium',
-  'moderate': 'medium',
-}
-
-/** For types holding personal data, drafts and edits are at least `medium` too. */
-export const PUBLISHER_PERSONAL_DATA_RISK_FLOOR: Readonly<Record<PublisherPermissionAction, PublisherRisk>> = {
-  'view-draft': 'medium',
-  'edit': 'medium',
-  'publish': 'medium',
-  'moderate': 'medium',
-}
 
 /** A type's key: lower-case ASCII with `-`, as a segment of Configuration's keys. */
 export const TYPE_KEY_PATTERN = /^[a-z][a-z0-9-]{0,39}$/
@@ -90,9 +66,7 @@ export const publisherTypeDeclarationSchema = z.strictObject({
     moderation: z.boolean().default(false),
     /** `publishAt` and `unpublishAt` may be set. */
     scheduling: z.boolean().default(false),
-    /** Each permission's risk; never below the floor. Omitted: the floor. */
-    risks: z.partialRecord(z.enum(PUBLISHER_PERMISSION_ACTIONS), z.enum(PUBLISHER_RISKS)).default({}),
-  }).default({ approval: false, moderation: false, scheduling: false, risks: {} }),
+  }).default({ approval: false, moderation: false, scheduling: false }),
   personalData: z.strictObject({
     /** The field holding the person's opaque identity identifier. */
     subjectField: z.string().regex(FIELD_NAME_PATTERN),
@@ -105,8 +79,6 @@ export const publisherTypeDeclarationSchema = z.strictObject({
 export type PublisherTypeDeclarationInput = z.input<typeof publisherTypeDeclarationSchema>
 /** A declaration as registered: every default filled in, frozen. */
 export type PublisherTypeDeclaration = z.output<typeof publisherTypeDeclarationSchema> & {
-  /** Each permission's risk, the declared one or the floor. */
-  readonly risks: Readonly<Record<PublisherPermissionAction, PublisherRisk>>
   /** The type's fields as JSON Schema, for the generic edit form. */
   readonly jsonSchema: Readonly<Record<string, unknown>>
   /** Its formatted fields, found from `fields` (`richTextSchema`), in order. */
@@ -140,7 +112,7 @@ export function definePublisherDocumentType<const Declaration extends PublisherT
  * meta-schema, a type registered twice, a `fields` schema that is not a
  * strict object, holds an unbounded string or array or too many
  * formatted fields, a filterable, subject or consent field the schema
- * does not have (or of the wrong shape), `approval` with `moderation`, and a risk below the floor.
+ * does not have (or of the wrong shape), and `approval` with `moderation`.
  */
 export function buildPublisherRegistry(declarations: readonly PublisherTypeDeclarationInput[]): PublisherRegistry {
   const registry = new Map<string, PublisherTypeDeclaration>()
@@ -176,15 +148,8 @@ export function buildPublisherRegistry(declarations: readonly PublisherTypeDecla
       const properties = consent?.properties as Record<string, unknown> | undefined
       if (!consent || !properties?.givenAt || !properties?.statement) fail(`names consent field '${declaration.personalData.consentField}', which is not a consent record`)
     }
-    const floor = declaration.personalData ? PUBLISHER_PERSONAL_DATA_RISK_FLOOR : PUBLISHER_RISK_FLOOR
-    const risks = {} as Record<PublisherPermissionAction, PublisherRisk>
-    for (const action of PUBLISHER_PERMISSION_ACTIONS) {
-      const declared = declaration.lifecycle.risks[action]
-      if (declared !== undefined && riskRank(declared) < riskRank(floor[action])) fail(`declares '${action}' at '${declared}', below the floor '${floor[action]}'`)
-      risks[action] = declared ?? floor[action]
-    }
     const { $schema: _, ...schema } = jsonSchema
-    registry.set(declaration.type, Object.freeze({ ...declaration, risks: Object.freeze(risks), jsonSchema: Object.freeze(schema), richTextFields: Object.freeze(formatted.map(field => Object.freeze(field))) }))
+    registry.set(declaration.type, Object.freeze({ ...declaration, jsonSchema: Object.freeze(schema), richTextFields: Object.freeze(formatted.map(field => Object.freeze(field))) }))
   }
   return registry
 }
@@ -261,11 +226,10 @@ export function publisherPermission(type: string, action: PublisherPermissionAct
   return `publisher.${type}.${action}`
 }
 
-/** Every permission the registry derives, with its risk, for the host to add to Authorisation's catalogue (§10). */
-export function publisherPermissions(registry: PublisherRegistry): readonly { permission: string, risk: PublisherRisk, type: string, action: PublisherPermissionAction }[] {
+/** Every permission the registry derives, for the host to add to Authorisation's catalogue, which sets each one's risk (§10). */
+export function publisherPermissions(registry: PublisherRegistry): readonly { permission: string, type: string, action: PublisherPermissionAction }[] {
   return [...registry.values()].flatMap(declaration => PUBLISHER_PERMISSION_ACTIONS.map(action => ({
     permission: publisherPermission(declaration.type, action),
-    risk: declaration.risks[action],
     type: declaration.type,
     action,
   })))

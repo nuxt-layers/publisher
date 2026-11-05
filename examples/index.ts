@@ -34,7 +34,7 @@ export const examplePageType = definePublisherDocumentType({
   }),
   address: { kind: 'path', base: '', pattern: 'slug' },
   listing: { listable: false, order: 'title-asc', filterable: [] },
-  lifecycle: { approval: true, moderation: false, scheduling: true, risks: { publish: 'high' } },
+  lifecycle: { approval: true, moderation: false, scheduling: true },
 })
 
 /** Blog posts under `/blog/{YYYY}/{MM}/{DD}/{slug}`, listed and fed, filterable by tag. */
@@ -63,7 +63,7 @@ export const exampleMenuType = definePublisherDocumentType({
     })).max(30),
   }),
   address: { kind: 'none' },
-  lifecycle: { approval: false, moderation: false, scheduling: false, risks: { publish: 'high' } },
+  lifecycle: { approval: false, moderation: false, scheduling: false },
 })
 
 /** Customer reviews: a person's words, moderated, with consent recorded. */
