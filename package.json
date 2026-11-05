@@ -31,6 +31,7 @@
     "test": "vitest run",
     "check": "pnpm typecheck && pnpm test",
     "build:playground": "nuxt build playground",
+    "build:minimal-host": "nuxt build examples/minimal-host",
     "dev": "nuxt dev playground"
   },
   "dependencies": {

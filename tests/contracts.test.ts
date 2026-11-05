@@ -78,7 +78,8 @@ describe('the public contract', () => {
     for (const file of [...layerFiles, ...files('examples')]) {
       for (const target of imports(file)) expect(/^@nuxt-layers\//.test(target) && target !== RICH_TEXT, `${file} imports ${target}`).toBe(false)
     }
-    for (const file of files('examples')) {
+    // Reference declarations import only the contract; examples/minimal-host is a host, which may import its own packages.
+    for (const file of files('examples').filter(file => !file.startsWith('examples/minimal-host/'))) {
       for (const target of imports(file)) expect(target === 'zod' || target === RICH_TEXT || target === 'shared/contracts', `${file} imports ${target}`).toBe(true)
     }
   })
