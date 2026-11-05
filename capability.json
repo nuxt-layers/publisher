@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1",
+  "name": "@nuxt-layers/publisher",
+  "version": "1.0.0",
+  "classification": "platform",
+  "provides": [
+    { "capability": "PublisherService", "contractVersion": "1" }
+  ],
+  "requires": [
+    { "capability": "Database", "contractVersion": "1", "optional": false },
+    { "capability": "DocumentTypes", "contractVersion": "1", "optional": false },
+    { "capability": "Access", "contractVersion": "1", "optional": false },
+    { "capability": "Caller", "contractVersion": "1", "optional": true },
+    { "capability": "Site", "contractVersion": "1", "optional": true },
+    { "capability": "Approval", "contractVersion": "1", "optional": true },
+    { "capability": "Clock", "contractVersion": "1", "optional": true },
+    { "capability": "Events", "contractVersion": "1", "optional": true },
+    { "capability": "AssetResolver", "contractVersion": "1", "optional": true },
+    { "capability": "TitleTemplate", "contractVersion": "1", "optional": true }
+  ]
+}
