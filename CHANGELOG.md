@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Moved to the `nuxt-layers` organisation.
+- The export bundle format is now `nuxt-layers.publisher` (and `nuxt-layers.publisher.person` for a person's export). Bundles exported as `nuxt4-layers.publisher` no longer import.
 - Added [CONTRACT.md](CONTRACT.md), the one-page host contract for 1.0.0 (ADR-0012 §6). Documentation only.
 
 ## 1.0.0 — 2026-10-22

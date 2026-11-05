@@ -10,7 +10,7 @@ import { siteIdSchema, sitePathSchema } from './values'
  * import is also how a host seeds content.
  */
 
-export const PUBLISHER_BUNDLE_FORMAT = 'nuxt4-layers.publisher'
+export const PUBLISHER_BUNDLE_FORMAT = 'nuxt-layers.publisher'
 
 export const publisherBundleDocumentSchema = z.strictObject({
   id: identifierSchema,
