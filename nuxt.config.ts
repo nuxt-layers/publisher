@@ -1,5 +1,5 @@
 /**
- * Nuxt layer entry point for `@nuxt4-layers/publisher`.
+ * Nuxt layer entry point for `@nuxt-layers/publisher`.
  *
  * Hosts compose this layer by package name from `extends`, register their
  * document types and supply the ports from a Nitro plugin with the

@@ -1,14 +1,14 @@
 # Publisher Host Contract
 
-What a host needs to compose Publisher v1.0.0, and nothing else ([ADR-0012](https://github.com/nuxt4-layers/platform-architecture/blob/249cd48af72e0a3fc232d40c8aa05e8da3b32069/docs/decisions/ADR-0012-trivial-composition.md#6-a-one-page-host-contract) §6). The [longer contract](docs/contracts.md) and the code stay the source: where this page disagrees with them, this page is the bug. v1.0.0 predates ADR-0012: there is no single call, and it does not take `resolveCaller` or `decide` yet, so today the host fills each port below itself.
+What a host needs to compose Publisher v1.0.0, and nothing else ([ADR-0012](https://github.com/nuxt-layers/platform-architecture/blob/249cd48af72e0a3fc232d40c8aa05e8da3b32069/docs/decisions/ADR-0012-trivial-composition.md#6-a-one-page-host-contract) §6). The [longer contract](docs/contracts.md) and the code stay the source: where this page disagrees with them, this page is the bug. v1.0.0 predates ADR-0012: there is no single call, and it does not take `resolveCaller` or `decide` yet, so today the host fills each port below itself.
 
 ## Install
 
 ```json
-"@nuxt4-layers/publisher": "github:nuxt4-layers/publisher#v1.0.0"
+"@nuxt-layers/publisher": "github:nuxt-layers/publisher#v1.0.0"
 ```
 
-`extends: ['@nuxt4-layers/publisher']` in `nuxt.config.ts`; install with `--frozen-lockfile`. One Nitro plugin (the `providePublisher*` and server functions are auto-imported):
+`extends: ['@nuxt-layers/publisher']` in `nuxt.config.ts`; install with `--frozen-lockfile`. One Nitro plugin (the `providePublisher*` and server functions are auto-imported):
 
 ```ts
 import { postsType } from '../content-types' // the host's own declarations
@@ -50,7 +50,7 @@ The layer reads no other environment variable. Document types are code the host 
 | Document types | Not a shared shape | `providePublisherDocumentTypes(declarations)`, each from `definePublisherDocumentType`, with `type`, `label`, `fields` (a `z.strictObject`, every string and array bounded), `address`, `listing`, `lifecycle`, `personalData`. No default type |
 | Caller | `resolveCaller(event)` | Not taken yet. `PublisherSubjectResolver.resolve(event)` → `{ identityId, kind: 'person' \| 'service', assurance: { level, phishingResistant, authenticatedAt } }` or `null`, mapped from Authentication's principal. `PublisherSiteResolver.resolve(event)` → the site id or `null` (e.g. Identity's tenant for the host name). Both needed for the HTTP API |
 | Access | `decide(caller, action, resource)` | Not taken yet. `PublisherAccessDecision.allows({ identityId, permission, siteId, type, documentId \| null, consistency })` → `boolean`, mapped to Authorisation's `authorise` on the group the host picks for the site. Required |
-| Approval | Not a shared shape | `PublisherApproval`, for types with `lifecycle.approval`: `request({ siteId, documentId, type, version, digest, permission, risk, requiredApprovals, requesterId, correlationId })` → `{ approvalId }`; `decision({ approvalId })` → `{ state, digest, approverIds }`, from iam-integration's [approvals process](https://github.com/nuxt4-layers/iam-integration/blob/899befcf566775950c4b70b8cf0e7658be1000f9/docs/processes/approvals.md) |
+| Approval | Not a shared shape | `PublisherApproval`, for types with `lifecycle.approval`: `request({ siteId, documentId, type, version, digest, permission, risk, requiredApprovals, requesterId, correlationId })` → `{ approvalId }`; `decision({ approvalId })` → `{ state, digest, approverIds }`, from iam-integration's [approvals process](https://github.com/nuxt-layers/iam-integration/blob/899befcf566775950c4b70b8cf0e7658be1000f9/docs/processes/approvals.md) |
 | Mail | `send(...)` | None: the layer sends nothing |
 | Events | The outbox, drained by `relay()` | `relayPublisherOutbox({ limit? })` → `PublisherEventSink.publish(events)`, at least once, in order |
 | Scheduled work | `tasks: { name, every, run }[]` | `runPublisherMaintenance()` every minute (scheduled publishing and archiving, retention); `relayPublisherOutbox()` every minute. Both idempotent; never endpoints |
@@ -92,7 +92,7 @@ Four per registered type, from `publisherPermissions(usePublisherRegistry())`, f
 
 ## Screens
 
-None. Publisher is fully headless ([ADR-0009](https://github.com/nuxt4-layers/platform-architecture/blob/249cd48af72e0a3fc232d40c8aa05e8da3b32069/docs/decisions/ADR-0009-headless-capability-layers.md#adopting-it)): no pages, routes, components, styles or message catalogue, so there is nothing to move or switch off. The host owns every route, including the catch-all that resolves addresses, draws content with `ui`'s rich-text renderer or its own, and takes editing from `content-editor` through the editor slot.
+None. Publisher is fully headless ([ADR-0009](https://github.com/nuxt-layers/platform-architecture/blob/249cd48af72e0a3fc232d40c8aa05e8da3b32069/docs/decisions/ADR-0009-headless-capability-layers.md#adopting-it)): no pages, routes, components, styles or message catalogue, so there is nothing to move or switch off. The host owns every route, including the catch-all that resolves addresses, draws content with `ui`'s rich-text renderer or its own, and takes editing from `content-editor` through the editor slot.
 
 ## Headless surface
 
@@ -117,5 +117,5 @@ A screen the host draws must still:
 - A type with `approval` cannot also have `moderation`. Saving after submitting asks for approval again: consent binds to the version's digest.
 - Personal-data types need the consent field before publishing (`consent-missing`); their subject and consent fields never reach a reader.
 - A missing required port throws `PublisherCompositionError` at first use; nothing falls back, and there is no in-memory store. Stored documents of a type the host stopped registering fail `checkPublisherComposition()`.
-- Your lockfile must record `@nuxt4-layers/rich-text` as its `codeload.github.com` tarball, never `git@github.com`.
+- Your lockfile must record `@nuxt-layers/rich-text` as its `codeload.github.com` tarball, never `git@github.com`.
 - Events carry identifiers, codes, counts and times only: read content through the server functions.

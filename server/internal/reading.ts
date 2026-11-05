@@ -1,4 +1,4 @@
-import { parseRichText } from '@nuxt4-layers/rich-text'
+import { parseRichText } from '@nuxt-layers/rich-text'
 import type {
   PublisherBacklink,
   PublisherBundle,

@@ -4,7 +4,7 @@
 
 > **In short:** keep every service, remove every screen, and hand rich text to the shared `rich-text` library. The publisher is not yet released, so this all happens before 1.0.0, with no deprecation period.
 
-Governed by [ADR-0009](https://github.com/nuxt4-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0009-headless-capability-layers.md) (headless layers) and [ADR-0011](https://github.com/nuxt4-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0011-shared-rich-text-and-configurable-copy.md) (shared rich text). The result is described in the [guide](guide.md).
+Governed by [ADR-0009](https://github.com/nuxt-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0009-headless-capability-layers.md) (headless layers) and [ADR-0011](https://github.com/nuxt-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0011-shared-rich-text-and-configurable-copy.md) (shared rich text). The result is described in the [guide](guide.md).
 
 ## Starting point
 
@@ -18,7 +18,7 @@ Governed by [ADR-0009](https://github.com/nuxt4-layers/platform-architecture/blo
 | Sites | Every document on a site | **Stays** |
 | HTTP API `/api/publisher/*` | Always on | **Stays**, with `runtimeConfig.publisher.api.enabled` to switch it off |
 | `usePublisher()` | Data client, plus screen helpers | **Stays** as a typed client only |
-| Markdown dialect | The publisher's own (`markdown/`, `shared/markdown.ts`) | **Moves** to `nuxt4-layers/rich-text`, with profiles added |
+| Markdown dialect | The publisher's own (`markdown/`, `shared/markdown.ts`) | **Moves** to `nuxt-layers/rich-text`, with profiles added |
 | Formatted fields | `markdownSchema()` and `markdownFields` in each type | **Changes:** fields use `rich-text`'s schema with a **profile** (inline, block or document); the publisher finds them from the schema |
 | Plain fields | Strings in each type's schema | **Stays:** plain strings with a length limit, never `rich-text` |
 | Checks on save | The publisher's own | **Changes:** `rich-text`'s checks, against each field's profile |
@@ -32,7 +32,7 @@ Governed by [ADR-0009](https://github.com/nuxt4-layers/platform-architecture/blo
 
 ## Before it starts
 
-`nuxt4-layers/rich-text` must exist at 1.0, built from the publisher's dialect with its tests, and with profiles added. The publisher pins it by tag ([ADR-0008](https://github.com/nuxt4-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0008-independent-layer-delivery.md)).
+`nuxt-layers/rich-text` must exist at 1.0, built from the publisher's dialect with its tests, and with profiles added. The publisher pins it by tag ([ADR-0008](https://github.com/nuxt-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0008-independent-layer-delivery.md)).
 
 ## Steps
 

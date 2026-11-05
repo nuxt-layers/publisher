@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, normalize, relative } from 'node:path'
-import { richTextSchema } from '@nuxt4-layers/rich-text'
+import { richTextSchema } from '@nuxt-layers/rich-text'
 import { z } from 'zod'
 import { describe, expect, it } from 'vitest'
 import { toPosix } from './support/paths'
@@ -35,7 +35,7 @@ function code(file: string): string {
     .replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1')
 }
 
-const RICH_TEXT = '@nuxt4-layers/rich-text'
+const RICH_TEXT = '@nuxt-layers/rich-text'
 const contractFiles = files('shared', /\.ts$/)
 /** The layer's own source: everything a host receives except the examples. */
 const layerFiles = [...files('app'), ...files('server'), ...files('shared'), 'nuxt.config.ts']
@@ -76,7 +76,7 @@ describe('the public contract', () => {
 
   it('never imports another layer, only the stateless rich-text library (ADR-0011), and the examples only the contract', () => {
     for (const file of [...layerFiles, ...files('examples')]) {
-      for (const target of imports(file)) expect(/^@nuxt4-layers\//.test(target) && target !== RICH_TEXT, `${file} imports ${target}`).toBe(false)
+      for (const target of imports(file)) expect(/^@nuxt-layers\//.test(target) && target !== RICH_TEXT, `${file} imports ${target}`).toBe(false)
     }
     for (const file of files('examples')) {
       for (const target of imports(file)) expect(target === 'zod' || target === RICH_TEXT || target === 'shared/contracts', `${file} imports ${target}`).toBe(true)

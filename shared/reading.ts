@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { publisherDocumentSchema } from './documents'
 import { identifierSchema, instantSchema } from './identifiers'
 import { PUBLISHER_ORDERS, typeKeySchema } from './types'
-import { RICH_TEXT_PROFILES, richTextTreeSchema } from '@nuxt4-layers/rich-text'
+import { RICH_TEXT_PROFILES, richTextTreeSchema } from '@nuxt-layers/rich-text'
 import { siteIdSchema, sitePathSchema } from './values'
 
 /** Reading published documents (docs/contracts.md §7, §8). */

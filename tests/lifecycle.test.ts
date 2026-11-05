@@ -1,4 +1,4 @@
-import { richTextSchema } from '@nuxt4-layers/rich-text'
+import { richTextSchema } from '@nuxt-layers/rich-text'
 import { z } from 'zod'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { PublisherActionRequestInput, PublisherDocument, PublisherSubject } from '../shared/contracts'

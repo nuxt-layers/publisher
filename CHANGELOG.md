@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Moved to the `nuxt-layers` organisation.
 - Added [CONTRACT.md](CONTRACT.md), the one-page host contract for 1.0.0 (ADR-0012 §6). Documentation only.
 
 ## 1.0.0 — 2026-10-22

@@ -1,4 +1,4 @@
-import { richTextSchema } from '@nuxt4-layers/rich-text'
+import { richTextSchema } from '@nuxt-layers/rich-text'
 import { z } from 'zod'
 import {
   assetIdSchema,
@@ -11,7 +11,7 @@ import {
 } from '../shared/contracts'
 
 /**
- * Reference declarations: EXAMPLES ONLY (`@nuxt4-layers/publisher/examples`).
+ * Reference declarations: EXAMPLES ONLY (`@nuxt-layers/publisher/examples`).
  * The layer never registers them. A host copies what it needs into its own
  * registration, or writes its own; nothing in the layer depends on them.
  */

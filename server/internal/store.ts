@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { checkRichText } from '@nuxt4-layers/rich-text'
+import { checkRichText } from '@nuxt-layers/rich-text'
 import type {
   PublisherContent,
   PublisherDocument,
