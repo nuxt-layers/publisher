@@ -61,7 +61,13 @@ jobs:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: pnpm-store-${{ runner.os }}-
-      - run: pnpm install --frozen-lockfile
+      # Development: resolve against package.json rather than insisting on the
+      # committed lockfile, so hosts' and providers' master moves are picked up
+      # (ADR-0008). minimumReleaseAge and blockExoticSubdeps still apply. CI
+      # would freeze by default, so the flag is explicit; the diff shows drift.
+      - run: pnpm install --no-frozen-lockfile
+      - name: Show lockfile drift
+        run: git diff --stat -- pnpm-lock.yaml
       - run: pnpm dev:prepare
       - run: pnpm check
       - run: pnpm build:playground

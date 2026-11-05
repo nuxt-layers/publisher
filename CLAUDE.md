@@ -33,4 +33,4 @@ Nuxt 4 foundation layer for publishing documents of types the host registers: dr
 - Contract version 1 (docs/contracts.md §17). No releases or tags while the platform is in development; the package is `0.0.0` and hosts follow `master`. A breaking change is stated in the changelog and raises the contract version.
 - Built test-first: a new feature's contract and failing tests come first. Anything specified but not yet built calls `pending()` (`shared/pending.ts`); `tests/contracts.test.ts` fails while any call remains, so nothing merges with one.
 - Platform-agnostic: the layer and its tests run alike on Windows, macOS and Linux. Tests that compare file paths with import specifiers or routes pass them through `toPosix` (`tests/support/paths.ts`).
-- Package manager: pnpm. Commit `pnpm-lock.yaml`.
+- Package manager: pnpm. Commit `pnpm-lock.yaml`, regenerated locally when dependencies change. While the platform is in development CI installs with `--no-frozen-lockfile` and shows any drift; it returns to a frozen install with the first beta.
