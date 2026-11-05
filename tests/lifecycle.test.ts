@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { PublisherActionRequestInput, PublisherDocument, PublisherSubject } from '../shared/contracts'
 import { definePublisherDocumentType, PUBLISHER_ACTIONS, PUBLISHER_TRANSITIONS } from '../shared/contracts'
-import { providePublisherDocumentTypes } from '../server/utils/publisher-composition'
+import { providePublisherDocumentTypes } from '../server/internal/composition'
 import {
   createPublisherDocument,
   exportPublisherContent,

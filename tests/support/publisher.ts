@@ -11,8 +11,8 @@ import {
   providePublisherEventSink,
   providePublisherPolicy,
   providePublisherTitleTemplate,
-} from '../../server/utils/publisher-composition'
-import { migratePublisherDatabase } from '../../server/utils/publisher-server'
+} from '../../server/internal/composition'
+import { migratePublisherDatabase } from '../../server/internal/startup'
 import { createTestDatabase } from './database'
 import { TEST_TYPES } from './types'
 import { World } from './world'

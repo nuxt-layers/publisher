@@ -138,6 +138,9 @@ export { publisherEventSchema } from './events'
 export type {
   PostgresPoolLike,
   PublisherAccessDecision,
+  PublisherCaller,
+  PublisherOptions,
+  PublisherTask,
   PublisherResource,
   PublisherApproval,
   PublisherPolicy,

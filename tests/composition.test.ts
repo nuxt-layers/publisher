@@ -8,14 +8,14 @@ import {
   providePublisherDocumentTypes,
   providePublisherEventSink,
   usePublisherRegistry,
-} from '../server/utils/publisher-composition'
+} from '../server/internal/composition'
 import {
-  checkPublisherComposition,
   createPublisherDocument,
   getPublishedDocument,
   relayPublisherOutbox,
   transitionPublisherDocument,
 } from '../server/utils/publisher-server'
+import { checkPublisherComposition } from '../server/internal/startup'
 import { hasDatabase, requireDatabaseInCi } from './support/database'
 import { Harness } from './support/publisher'
 import { appraisalType, bulletin, bulletinType, landing, landingType, TEST_TYPES } from './support/types'

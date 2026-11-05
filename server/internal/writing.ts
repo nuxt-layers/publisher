@@ -1,6 +1,6 @@
 import type { PublisherActionRequest, PublisherContent, PublisherDocument, PublisherSubject, PublisherTypeDeclaration } from '../../shared/contracts'
 import { PUBLISHER_TRANSITIONS, publisherActionRequestSchema, publisherPermission, PublisherFailure } from '../../shared/contracts'
-import { usePublisherApproval, usePublisherPolicy, usePublisherRegistry } from '../utils/publisher-composition'
+import { usePublisherApproval, usePublisherPolicy, usePublisherRegistry } from './composition'
 import type { Client, DocumentRow, VersionRow } from './store'
 import {
   authorise,
