@@ -7,7 +7,7 @@
 | Property | Value |
 |---|---|
 | Owner | Publisher |
-| Technology | PostgreSQL 16, in the schema the host names (default `publisher`), created by Publisher's own append-only migrations |
+| Technology | PostgreSQL 18-alpine or higher, in the schema the host names (default `publisher`), created by Publisher's own append-only migrations |
 | Location | The host's database, under the host's hosting and storage providers |
 | Isolation | Every document, and every row reached through one, belongs to one site (`site_id`); every query names the site. Nothing crosses sites |
 | Access | The host's runtime role is granted `select`, `insert`, `update` and `delete` on `document`, `version`, `link`, `redirect` and `outbox` only; migrations run with the host's migration pool. All SQL is parameterised; rows are checked against the contract's schemas before they leave the layer. Endpoints act only after the access-decision port allows |
