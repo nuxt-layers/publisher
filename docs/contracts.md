@@ -1,5 +1,7 @@
 # Publisher Contract (version 1)
 
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 4 to 8 change it: security decisions and moderation leave, delete arrives, and composition becomes one call. Each step updates this document.
+
 `@nuxt-layers/publisher/contracts` is the only supported import path for this capability's types and pure helpers. It imports nothing but `zod`: no Nuxt, Vue, h3, server code, driver or other `@nuxt-layers/*` package.
 
 The publisher answers one question: **which version of which document is published at which address, for whom, now?** It owns the lifecycle every published document shares, and knows nothing about what any document is: every document type is the host's registration (§3). This is contract version 1 (§17); section numbers are stable.
@@ -56,7 +58,7 @@ A document of an addressed type carries a `slug` (up to 8 segments of `[a-z0-9]`
 
 ### 3.4 Sites
 
-Every document belongs to one **site**: the host's opaque identifier of where documents are published (`siteIdSchema`: lower-case ASCII letters, digits and `-`, up to 64 characters), such as Identity's tenant identifier for the tenant Configuration finds by host name, or one fixed name for a host with one site. Types are registered once for every site.
+Every document belongs to one **site**: the host's opaque identifier of where documents are published (`siteIdSchema`: lower-case ASCII letters, digits and `-`, up to 64 characters), A site belongs to one owner, a group within a tenant (README, Terms); the host says which, and where the site is served. A host with one site uses one fixed name. Types are registered once for every site.
 
 - Every server function but migration, the start-up check, maintenance, the relay and a person's export and erasure names its site; the endpoints take it only from the host's site resolver (§11). A request for no site finds nothing (`not-found`) and administers nothing (`forbidden`).
 - A document is addressed, listed, fed, mapped, linked, redirected, moderated and administered on its own site only. On any other site it is as missing as one that never existed, whatever the viewer's permissions there.
@@ -95,7 +97,7 @@ One state machine for every type (`PUBLISHER_TRANSITIONS`). Each action names th
 | `restore` | `edit` | as `save` | A new version with an earlier version's content (`restoredFrom`) |
 | `moderate` | `moderate` | `in-review` with `moderation: pending` → `published` (accept) or `archived` (reject) | Types with `moderation` only (§5.3) |
 
-An action not allowed from the current status is `conflict`, `invalid-transition`. Only the published version is public (§8.4). Every action is checked through the access-decision port at `strong` consistency, and a subject short of the step-up for the permission's risk (`meetsStepUp`: `high` aal2; `critical` aal2, phishing resistant, within 15 minutes) is refused `insufficient-assurance`.
+An action not allowed from the current status is `conflict`, `invalid-transition`. Only the published version is public (§8.4). Every action is checked through the access-decision port at `strong` consistency, and a user short of the step-up for the permission's risk (`meetsStepUp`: `high` aal2; `critical` aal2, phishing resistant, within 15 minutes) is refused `insufficient-assurance`.
 
 ### 5.2 Approval
 
@@ -191,7 +193,7 @@ For types declaring `personalData`:
 
 - **Consent.** Publishing (by `publish` or `moderate`) refuses a version whose `consentField` is absent (`conflict`, `consent-missing`).
 - **Export.** `exportPublisherPersonData({ identityId })` answers every document whose newest or any earlier version names the person in its `subjectField`, with every version, in the bundle's document form (§16).
-- **Erasure.** `erasePublisherPerson({ identityId, correlationId })` deletes exactly those documents, every version of them, their links, redirects and approvals, writes `publisher.document-unpublished` (`erased`) for each that was published and `publisher.person-erased` with the counts. Linking documents survive; their links render as text. Erasing again erases nothing. A host calls both from iam-integration's data-subject request coordinator.
+- **Erasure.** `erasePublisherPerson({ identityId, correlationId })` deletes exactly those documents, every version of them, their links, redirects and approvals, writes `publisher.document-unpublished` (`erased`) for each that was published and `publisher.person-erased` with the counts. Linking documents survive; their links render as text. Erasing again erases nothing. A host calls both when a person asks for their data or its erasure.
 - **Retention.** `runPublisherMaintenance()` deletes superseded versions (neither the newest nor the published) saved longer ago than the type's `retentionDays`.
 - `authors` on any type are opaque identifiers, anonymised by Profile's unlinking like every other member's.
 
@@ -214,10 +216,10 @@ A type's `lifecycle.risks` may raise any of them; never lower (refused at start-
 |---|---|---|---|
 | Document types (`providePublisherDocumentTypes`) | Yes | Host | The registered types (§3) |
 | `PublisherDatabase` | Yes | Host | PostgreSQL pool (runtime role), schema (default `publisher`), and optionally the migration pool and runtime role, under ADR-0002 and ADR-0006 |
-| `PublisherSubjectResolver` | For the endpoints | Authentication, through the host | The signed-in subject, its `kind` and assurance, or `null` |
+| `PublisherSubjectResolver` | For the endpoints | Authentication, through the host | The signed-in user, its `kind` and assurance, or `null` |
 | `PublisherSiteResolver` | For the endpoints | Host, e.g. from Configuration's tenant by host name | The request's site (§3.4), or `null`; a host with one site answers a constant |
 | `PublisherAccessDecision` | Yes | Authorisation, through the host | Whether an identity holds a permission (§10) now, for a type and optionally a document |
-| `PublisherApproval` | For types with `approval` | iam-integration's approvals process, through the host | Asking for and reading consent to publish a version (§5.2) |
+| `PublisherApproval` | For types with `approval` | The host (later `workflow`) | Asking for and reading consent to publish a version (§5.2) |
 | `PublisherClock` | No: the system clock without it | Host (the suite's one clock) | Schedules, retention and assurance freshness |
 | `PublisherEventSink` | For the relay | Host | Where `relayPublisherOutbox` sends events (§12) |
 | `PublisherAssetResolver` | No: images are refused without it | The host's asset store | Each `asset:` id's address, or `null` |
@@ -250,7 +252,7 @@ Events carry identifiers, codes, counts and times only: never a title, a field, 
 
 ## 13. Server functions
 
-Auto-imported in the host's server code. The subject is always the signed-in principal from the host's resolver, never from a request body.
+Auto-imported in the host's server code. The user is always the signed-in principal from the host's resolver, never from a request body.
 
 | Function | Does |
 |---|---|
@@ -269,7 +271,7 @@ Auto-imported in the host's server code. The subject is always the signed-in pri
 
 ## 14. HTTP API
 
-Under `/api/publisher`. Endpoints take the subject only from the host's resolver, parse queries and bodies with strict schemas, call the server functions (never SQL), are wrapped in one handler (`publisherHandler`), and answer errors as coarse codes. State-changing requests must carry an `Origin` on the request's own host.
+Under `/api/publisher`. Endpoints take the user only from the host's resolver, parse queries and bodies with strict schemas, call the server functions (never SQL), are wrapped in one handler (`publisherHandler`), and answer errors as coarse codes. State-changing requests must carry an `Origin` on the request's own host.
 
 The host may switch the API off: `runtimeConfig.publisher.api.enabled: false`, or `NUXT_PUBLISHER_API_ENABLED=false`. It is on by default. Off, every `/api/publisher/*` request answers a plain 404 before any port is asked or origin checked, so the API looks absent; the server functions still work.
 
@@ -278,7 +280,7 @@ The host may switch the API off: `runtimeConfig.publisher.api.enabled: false`, o
 | `GET /resolve?path=…&preview=1` | Anyone; a preview needs `view-draft` | §7.1. A preview is `Cache-Control: private, no-store` |
 | `GET /documents?type=…&…` | Anyone | §8.1; every other query parameter is a filter |
 | `GET /feeds/{type}/rss`, `GET /feeds/{type}/atom` | Anyone | §8.2, with the request's own origin |
-| `GET /admin/types` | Signed in | The types the subject holds any permission on, with each type's form schema |
+| `GET /admin/types` | Signed in | The types the user holds any permission on, with each type's form schema |
 | `GET /admin/documents?type=…&search=…&status=…`, `POST /admin/documents` | `view-draft`; `edit` | Lists; creates (201) |
 | `GET /admin/documents/{id}?version=…` | `view-draft` | §5.5 |
 | `POST /admin/documents/{id}/actions` | §5.1 | One action (`publisherActionRequestSchema`) |
@@ -291,10 +293,10 @@ Export, import, submissions, erasure, maintenance and the relay are never endpoi
 
 | Code | HTTP | Meaning |
 |---|---|---|
-| `unauthenticated` | 401 | No signed-in subject |
+| `unauthenticated` | 401 | No signed-in user |
 | `forbidden` | 403 | Refused. Never says whether a document exists, or which rule refused |
 | `not-found` | 404 | Nothing a reader may see here: missing, draft or erased alike |
-| `insufficient-assurance` | 403 | The subject must step up to the permission's risk |
+| `insufficient-assurance` | 403 | The user must step up to the permission's risk |
 | `validation-failed` | 400 | Malformed; one problem code (`PUBLISHER_CONTENT_PROBLEMS`, or a field schema's code), never a value |
 | `conflict` | 409 | A rule refused it (`PUBLISHER_CONFLICT_REASONS`) |
 | `unavailable` | 503 | Database, registration, port or clock failure. Fails closed |
@@ -342,7 +344,7 @@ Contract version 1 (`PUBLISHER_CONTRACT_VERSION`). While the platform is in deve
 7. **Redirects follow the document.** No chains; a document wins over a redirect; a redirect dies with its document's publication.
 8. **Backlinks by acknowledgement.** Unpublishing a linked document is allowed, but only once the editor has seen how many documents link to it.
 9. **The access port is type-wide.** The publisher asks about a permission, a type and optionally a document; which group or tenant decides is the host's mapping to Authorisation.
-10. **Sites from the start.** Every document belongs to a site (§3.4), so a host serving several tenants composes the layer once, and a host with one site answers a constant. Adding a site scope after 1.0.0 would have narrowed every query and port, a contract version 2.
+10. **Sites from the start.** Every document belongs to a site (§3.4), so a host serving several tenants composes the layer once, and a host with one site answers a constant. Adding sites later would have narrowed every query and port, a breaking change.
 11. **Rich text as a safe tree.** Answers carry `rich-text`'s nodes, never HTML; there is no sanitiser to get wrong because the layer never produces markup.
 12. **No document type in the layer.** Not even for its own tests or playground: both register types defined in `tests/support/types.ts`.
 13. **Headless (ADR-0009).** The layer draws nothing, so any front end can use it and a composed application looks like one product. The HTTP API may be switched off for hosts that call only the server functions.

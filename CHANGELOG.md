@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Documents: terms defined once in the README (user, tenant, site, type, document, version, status, address); "user" replaces "subject" in prose; documents describing today's code say so. Documentation only.
 - CI installs with `--no-frozen-lockfile` while the platform is in development, and shows any lockfile drift.
 - Toolchain (ADR-0013): Node 26.13.0 (`.node-version`), Corepack 0.36.0 and pnpm 12.16.1; install scripts only for packages in `allowBuilds` (esbuild); CI caches the pnpm store. Development only: hosts' requirements are unchanged.
 - Versions reset while the platform is in development: the package is `0.0.0` and the contract version stays 1. The `v1.0.0` tag and release are withdrawn; hosts follow `master`.
