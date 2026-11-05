@@ -1,11 +1,11 @@
 # Publisher Host Contract
 
-What a host needs to compose Publisher v1.0.0, and nothing else (ADR-0012 §6, in [Resources](RESOURCES.md)). The [longer contract](docs/contracts.md) and the code stay the source: where this page disagrees with them, this page is the bug. v1.0.0 predates ADR-0012: there is no single call, and it does not take `resolveCaller` or `decide` yet, so today the host fills each port below itself.
+What a host needs to compose Publisher, and nothing else (ADR-0012 §6, in [Resources](RESOURCES.md)). The [longer contract](docs/contracts.md) and the code stay the source: where this page disagrees with them, this page is the bug. Publisher predates ADR-0012: there is no single call, and it does not take `resolveCaller` or `decide` yet, so today the host fills each port below itself.
 
 ## Install
 
 ```json
-"@nuxt-layers/publisher": "github:nuxt-layers/publisher#v1.0.0"
+"@nuxt-layers/publisher": "github:nuxt-layers/publisher#master"
 ```
 
 `extends: ['@nuxt-layers/publisher']` in `nuxt.config.ts`; install with `--frozen-lockfile`. One Nitro plugin (the `providePublisher*` and server functions are auto-imported):

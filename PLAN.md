@@ -19,7 +19,7 @@
 
 ## Decided for this work
 
-- The `v1.0.0` tag and release are withdrawn; consumers follow `master`.
+- The `v1.0.0` tag and release are withdrawn; consumers follow `master`. Versions are reset (package `0.0.0`, contract version 1) until a beta release.
 - The `providePublisher*` calls go in the same change as the single call, with no transition.
 - Publisher declares its approval port in its own contract and knows nothing of where it comes from; the host fills it.
 - Migrations run inside the single call.

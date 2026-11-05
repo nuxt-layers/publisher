@@ -329,7 +329,7 @@ The host, a kit or `ui` draws everything:
 
 ## 17. Versioning
 
-Contract version 1 (`PUBLISHER_CONTRACT_VERSION`), frozen for 1.x once 1.0.0 is released. Adding a port, an optional declaration field, an export, an event or a lifecycle feature is a minor release; removing or narrowing a type, function, endpoint, event or port, lowering a floor, or a stricter rule a host must act on needs contract version 2. `tests/contracts.test.ts` pins version 1's exports. Before 1.0.0, the contract changes only by reviewed pull request.
+Contract version 1 (`PUBLISHER_CONTRACT_VERSION`). While the platform is in development there are no releases or tags, and hosts follow `master` (ADR-0008). The contract changes only by reviewed pull request, every change stated in the changelog and tested. Adding a port, an optional declaration field, an export, an event or a lifecycle feature is compatible; removing or narrowing a type, function, endpoint, event or port, lowering a floor, or a stricter rule a host must act on is breaking and raises the contract version. `tests/contracts.test.ts` pins version 1's exports.
 
 ## 18. Decisions
 

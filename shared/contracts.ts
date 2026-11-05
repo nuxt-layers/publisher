@@ -1,4 +1,4 @@
-/** The publisher's contract version (docs/contracts.md §17): frozen for 1.x once 1.0.0 ships. */
+/** The publisher's contract version (docs/contracts.md §17): it changes when the interface does. */
 export const PUBLISHER_CONTRACT_VERSION = 1
 
 /**
