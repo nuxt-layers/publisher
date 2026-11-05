@@ -99,7 +99,7 @@ An action not allowed from the current status is `conflict`, `invalid-transition
 
 ### 5.2 Approval
 
-A type with `lifecycle.approval` never publishes without the approval port's consent, which the host maps to iam-integration's [approvals process](https://github.com/nuxt-layers/iam-integration/blob/899befcf566775950c4b70b8cf0e7658be1000f9/docs/processes/approvals.md):
+A type with `lifecycle.approval` never publishes without the approval port's consent, which the host supplies (§11):
 
 - `submit` asks `approval.request` about the newest version, with its **digest** (SHA-256 of the canonical JSON of the document's id, type, version and content), the publish permission, its risk, the requester and the approvers needed beyond the requester (`APPROVAL_FLOOR`: none for `low` and `medium`, one for `high` and `critical`), as in Configuration.
 - `publish` asks `approval.decision` and publishes only when the answer is `approved`, bound to the same digest as the version being published, with enough approvers other than the requester and the publisher. Otherwise `conflict`, `approval-missing`; publishing before submitting is `review-required`.
@@ -120,7 +120,7 @@ Every save, restore and import is a new version, kept with who saved it, when, a
 
 ## 6. Rich text
 
-Formatted fields use the platform's one format, [`@nuxt-layers/rich-text`](https://github.com/nuxt-layers/rich-text/blob/e0b07a2f0754ac0b96f3c11a42346f63690c8887/README.md) (ADR-0011), pinned at `v2.0.0`. Every other string is plain and never read as rich text.
+Formatted fields use the platform's one format, `@nuxt-layers/rich-text` (ADR-0011), pinned at `v2.0.0`. Every other string is plain and never read as rich text.
 
 ### 6.1 Profiles
 

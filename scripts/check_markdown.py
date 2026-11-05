@@ -1,11 +1,14 @@
-"""Validate Markdown headings, repository-local links and pinned cross-repository links."""
+"""Validate Markdown headings, local links, and that external links appear only in RESOURCES.md, pinned (ADR-0010)."""
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 import re
 import sys
 
 root = Path(__file__).resolve().parents[1]
-# ADR-0004: links to nuxt-layers documents must be pinned to a tag or commit.
+# ADR-0010: external links appear only in RESOURCES.md, pinned to a tag or commit;
+# CHANGELOG.md holds no links at all.
+RESOURCES = "RESOURCES.md"
+CHANGELOG = "CHANGELOG.md"
 moving_ref = re.compile(
     r"^https?://github\.com/nuxt-layers/[^/]+/(?:blob|tree|raw)/(?:master|main|HEAD|develop)(?:/|$)",
     re.IGNORECASE,
@@ -29,6 +32,13 @@ for file in files:
         for match in re.finditer(r"!?\[[^\]]*\]\(([^\s)]+)\)", line):
             href = match.group(1).strip("<>")
             parsed = urlsplit(href)
+            name = file.relative_to(root).as_posix()
+            if name == CHANGELOG:
+                errors.append(f"{name}:{number}: the changelog holds no links {href}")
+                continue
+            if (parsed.scheme in {"http", "https"} or parsed.netloc) and name != RESOURCES:
+                errors.append(f"{name}:{number}: external link outside {RESOURCES} {href}")
+                continue
             if moving_ref.match(href):
                 errors.append(f"{file.relative_to(root)}:{number}: unpinned link to a moving branch {href}")
                 continue
@@ -40,4 +50,4 @@ for file in files:
 if errors:
     print("\n".join(errors), file=sys.stderr)
     sys.exit(1)
-print(f"Checked {len(files)} Markdown files for headings, local links and pinned links")
+print(f"Checked {len(files)} Markdown files for headings, local links and external links")

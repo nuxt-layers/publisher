@@ -6,7 +6,7 @@ A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Au
 
 **Composing it?** Read [CONTRACT.md](CONTRACT.md), the one-page host contract, and nothing else ([changelog](CHANGELOG.md)).
 
-**Status:** 1.0.0, contract version 1 ([guide](docs/guide.md), [contract](docs/contracts.md), [threat model](docs/threat-model.md), [roadmap](docs/roadmap.md), [headless migration, complete](docs/headless-migration.md)): headless: the lifecycle, rich text checked by profile, addresses and links, listings and feeds, personal data, export and import, a switchable HTTP API and a typed client, with every document on a site, proven against types defined only in the tests. Composition into an application happens in `steve-r-lewis/platform-test-harness`.
+**Documents:** the [guide](docs/guide.md), the full [contract](docs/contracts.md), the [threat model](docs/threat-model.md), the [storage register](STORAGE-REGISTER.md), the [plan](PLAN.md) and the [manifest](capability.json).
 
 ## Owns
 
@@ -24,7 +24,7 @@ A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Au
 | The site shell, routes, every screen, contact forms and sending mail | The host, a kit or `ui` |
 | Images and files | The host's asset store: the publisher holds references only |
 | People's names | Profile, asked by the host's screens |
-| Who may do what, and approvals | The IAM suite, through the access-decision and approval ports |
+| Who may do what, and approvals | The host, through the access-decision and approval ports |
 | Editing content: forms, rich-text editing, authoring | `content-editor`, or the host's own form controls; the server checks every save |
 
 ## Interfaces
@@ -41,12 +41,6 @@ A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Au
 
 `pnpm install`, `pnpm dev:prepare`, then `pnpm check` (type check and tests). Database suites need `PUBLISHER_TEST_DATABASE_URL`, the admin URL of a disposable PostgreSQL 16. `python3 scripts/check_markdown.py` checks the documentation.
 
-## Governing decisions and specifications
+## Governing decisions
 
-- [ADR-0002 — Composition-Supplied Persistence and Capability-Owned Schemas](https://github.com/nuxt-layers/platform-architecture/blob/93f3d6fb144b72d61cfb172b6a50eb6c5af9f489/docs/decisions/ADR-0002-composition-supplied-persistence-and-capability-owned-schemas.md)
-- [ADR-0004 — Documentation Placement](https://github.com/nuxt-layers/platform-architecture/blob/93f3d6fb144b72d61cfb172b6a50eb6c5af9f489/docs/decisions/ADR-0004-documentation-placement.md)
-- [ADR-0006 — Polyglot Persistence and Data-Store Security](https://github.com/nuxt-layers/platform-architecture/blob/93f3d6fb144b72d61cfb172b6a50eb6c5af9f489/docs/decisions/ADR-0006-polyglot-persistence-and-data-store-security.md)
-- [ADR-0009 — Headless Capability Layers](https://github.com/nuxt-layers/platform-architecture/blob/725b2ffdc2f8101420bf301630f98fff01f68bc2/docs/decisions/ADR-0009-headless-capability-layers.md)
-- [ADR-0010 — Documentation Style](https://github.com/nuxt-layers/platform-architecture/blob/725b2ffdc2f8101420bf301630f98fff01f68bc2/docs/decisions/ADR-0010-documentation-style.md)
-- [ADR-0011 — Shared Rich Text and Configurable Copy](https://github.com/nuxt-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0011-shared-rich-text-and-configurable-copy.md)
-- [Approvals (two-person rule)](https://github.com/nuxt-layers/iam-integration/blob/899befcf566775950c4b70b8cf0e7658be1000f9/docs/processes/approvals.md)
+ADR-0002 and ADR-0006 (persistence), ADR-0008 (delivery), ADR-0009 (headless), ADR-0010 (documents), ADR-0011 (rich text), ADR-0012 (composition) and ADR-0013 (toolchain), with the security, privacy and layer standards. [RESOURCES.md](RESOURCES.md) lists each with the revision relied on.

@@ -1,7 +1,7 @@
 # @nuxt-layers/publisher — notes for Claude
 
 ## What this is
-Nuxt 4 foundation layer for publishing documents of types the host registers: drafts, versions and history; approval and moderation; scheduling; addresses, redirects and links; safe rich text; listings and feeds. Governed by `nuxt-layers/platform-architecture`; persistence follows ADR-0002 and ADR-0006. Not a member of the IAM suite. British spelling everywhere, including code and the manifest.
+Nuxt 4 foundation layer for publishing documents of types the host registers: drafts, versions and history; approval and moderation; scheduling; addresses, redirects and links; safe rich text; listings and feeds. Governed by `nuxt-layers/architecture-rules` (see `RESOURCES.md`); persistence follows ADR-0002 and ADR-0006. Not a member of the IAM suite. British spelling everywhere, including code and the manifest.
 
 ## Commands
 - `pnpm install`, then `pnpm dev:prepare` for Nuxt types. Never add a `prepare`/`postinstall` script
@@ -10,7 +10,7 @@ Nuxt 4 foundation layer for publishing documents of types the host registers: dr
 - `pnpm build:playground` proves the layer composes in a host
 - `@nuxt-layers/rich-text` is pinned as `github:nuxt-layers/rich-text#<tag>`; the lockfile must record the `codeload.github.com` tarball, never `git@github.com`
 - Never edit a released migration in `server/database/migrations.ts`; add a new one
-- `python3 scripts/check_markdown.py` checks headings, local links and that links to other `nuxt-layers` documents are pinned to a tag or commit. Run it after every documentation change.
+- `python3 scripts/check_markdown.py` checks headings, local links, that external links appear only in `RESOURCES.md` (pinned to a tag or commit) and that `CHANGELOG.md` has none. Run it after every documentation change.
 
 ## Rules
 - **The layer never names a document type.** Every type is the host's registration (`providePublisherDocumentTypes`); adding one is never a change to the layer. No `page`, `post`, `review`, `menu` or `blog` (or any other type) in `app/`, `server/` or `shared/`, outside comments; `tests/contracts.test.ts` searches for them. Reference types live only in `examples/`, never registered; tests and the playground use the types in `tests/support/types.ts`.
@@ -26,7 +26,8 @@ Nuxt 4 foundation layer for publishing documents of types the host registers: dr
 - Events and logs carry identifiers, codes, counts and times only, written to the outbox in the same transaction as the change.
 - Endpoints (`server/api/publisher/`) take the subject only from the host's resolver; parse queries and bodies strictly; call the server functions, never SQL; are wrapped in `publisherHandler`. `tests/http.test.ts` mounts every file and pins the list. Export, import, submissions, erasure, maintenance and the relay are never endpoints. The host may switch the API off (`runtimeConfig.publisher.api.enabled`); off, it answers 404 as if absent.
 - Members and other layers are reached only through ports the host supplies; never import another `@nuxt-layers/*` package, except the stateless `rich-text` library (ADR-0011 §7), pinned by tag.
-- Keep `docs/contracts.md`, `docs/threat-model.md` (control register) and `docs/roadmap.md` in step with code, briefly. Link to other `nuxt-layers` documents pinned to a commit.
+- Keep `docs/contracts.md`, `docs/threat-model.md` (control register), `STORAGE-REGISTER.md`, `capability.json` and `PLAN.md` in step with code, briefly.
+- Documents follow ADR-0010: external links and verified revisions appear only in `RESOURCES.md`, pinned to a commit; every other document names the entry. `CHANGELOG.md` holds no links. `scripts/check_markdown.py` enforces both.
 - Contract version 1 is frozen for 1.x once 1.0.0 ships (docs/contracts.md §17); additions are minor releases.
 - Built test-first: a new feature's contract and failing tests come first. Anything specified but not yet built calls `pending()` (`shared/pending.ts`); `tests/contracts.test.ts` fails while any call remains, so no release ships one.
 - Platform-agnostic: the layer and its tests run alike on Windows, macOS and Linux. Tests that compare file paths with import specifiers or routes pass them through `toPosix` (`tests/support/paths.ts`).
