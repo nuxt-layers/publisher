@@ -5,6 +5,10 @@ minimumReleaseAge: 1440
 # Transitive dependencies may come only from the registry, never from Git or
 # tarball URLs.
 blockExoticSubdeps: true
+# Install scripts run only for the packages named here (pnpm 12 refuses the
+# rest). esbuild's checks that its platform binary is present.
+allowBuilds:
+  esbuild: true
 
 overrides:
   # GHSA-v5rq-49vh-5v5c (critical) in @simple-git/argv-parser 1.x, reached only

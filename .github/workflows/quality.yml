@@ -48,12 +48,26 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26.13.0
+          node-version-file: .node-version
       # pnpm comes through Corepack, at the version in package.json's
       # packageManager (ADR-0013). Node 26 no longer bundles Corepack, and
       # third-party actions are not allowed here.
       - run: npm install --global corepack@0.36.0 && corepack enable
-      - run: pnpm install --frozen-lockfile
+      - name: Find the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      # Development: resolve against package.json rather than insisting on the
+      # committed lockfile, so hosts' and providers' master moves are picked up
+      # (ADR-0008). minimumReleaseAge and blockExoticSubdeps still apply. CI
+      # would freeze by default, so the flag is explicit; the diff shows drift.
+      - run: pnpm install --no-frozen-lockfile
+      - name: Show lockfile drift
+        run: git diff --stat -- pnpm-lock.yaml
       - run: pnpm dev:prepare
       - run: pnpm check
       - run: pnpm build:playground
