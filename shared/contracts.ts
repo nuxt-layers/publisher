@@ -2,7 +2,7 @@
 export const PUBLISHER_CONTRACT_VERSION = 1
 
 /**
- * Public contract for `@nuxt4-layers/publisher`.
+ * Public contract for `@nuxt-layers/publisher`.
  *
  * The only supported cross-layer import path for the publisher's types and
  * pure helpers. It imports nothing but `zod`, and names no document type:

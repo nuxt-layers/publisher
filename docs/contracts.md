@@ -1,6 +1,6 @@
 # Publisher Contract (version 1)
 
-`@nuxt4-layers/publisher/contracts` is the only supported import path for this capability's types and pure helpers. It imports nothing but `zod`: no Nuxt, Vue, h3, server code, driver or other `@nuxt4-layers/*` package.
+`@nuxt-layers/publisher/contracts` is the only supported import path for this capability's types and pure helpers. It imports nothing but `zod`: no Nuxt, Vue, h3, server code, driver or other `@nuxt-layers/*` package.
 
 The publisher answers one question: **which version of which document is published at which address, for whom, now?** It owns the lifecycle every published document shares, and knows nothing about what any document is: every document type is the host's registration (§3). This is contract version 1 (§17); section numbers are stable.
 
@@ -10,14 +10,14 @@ The publisher answers one question: **which version of which document is publish
 |---|---|---|
 | Drafts, versions, history, review, moderation, scheduling, addresses, redirects, links between documents, safe rich text, listings, feeds | **Publisher** | §4 to §8 |
 | What a document is: its fields, address rule, listing, lifecycle options | The host | A registered type declaration (§3) |
-| Site name, legal entity, contacts, SEO defaults | The host, from `nuxt4-layers/configuration` | The title-template port (§11); nothing else |
+| Site name, legal entity, contacts, SEO defaults | The host, from `nuxt-layers/configuration` | The title-template port (§11); nothing else |
 | The site shell, routes and every screen | The host, a kit or `ui` | Never. The layer is headless (§15) |
 | Contact forms and sending mail | The host, or a later forms service | Never. A form may hand a submission to `receivePublisherSubmission` (§5.3) |
 | `security.txt` | The host, from Configuration's `contact.security` | Never |
 | Images and files | The host's asset store | `asset:` references, resolved through the asset port (§6.2) |
 | People's names | Profile | Opaque identity identifiers only (§4); the host's screens ask Profile (§15) |
 | Who may do what | The IAM suite | The access-decision and approval ports (§11), on the permissions of §10 |
-| Editing content: forms, rich-text editing, authoring | `nuxt4-layers/content-editor`, or the host's own form controls | Never. The server checks every save (§6.5) |
+| Editing content: forms, rich-text editing, authoring | `nuxt-layers/content-editor`, or the host's own form controls | Never. The server checks every save (§6.5) |
 
 ## 2. What the publisher holds
 
@@ -49,7 +49,7 @@ A document of an addressed type carries a `slug` (up to 8 segments of `[a-z0-9]`
 
 ### 3.3 Registration rules
 
-- The layer registers no type, and its own source names none (`tests/contracts.test.ts` searches it). Reference declarations are exported from `@nuxt4-layers/publisher/examples` as examples only.
+- The layer registers no type, and its own source names none (`tests/contracts.test.ts` searches it). Reference declarations are exported from `@nuxt-layers/publisher/examples` as examples only.
 - Adding a type is a registration, never a change to the layer: the same code stores, versions, reviews, publishes, lists, feeds and exports every type (`tests/lifecycle.test.ts` proves it with types defined only in the tests).
 - A document of a type the host does not register is refused (`validation-failed`, `unknown-type`). If the database holds documents of a type the host no longer registers, `checkPublisherComposition()` fails at start-up and every server function fails closed (`unavailable`) rather than serve them as something else.
 - Raising a type's risk, adding a field, or making a field optional applies to new versions; stored versions keep the content they were saved with and are checked again only when they are published or restored.
@@ -99,7 +99,7 @@ An action not allowed from the current status is `conflict`, `invalid-transition
 
 ### 5.2 Approval
 
-A type with `lifecycle.approval` never publishes without the approval port's consent, which the host maps to iam-integration's [approvals process](https://github.com/nuxt4-layers/iam-integration/blob/899befcf566775950c4b70b8cf0e7658be1000f9/docs/processes/approvals.md):
+A type with `lifecycle.approval` never publishes without the approval port's consent, which the host maps to iam-integration's [approvals process](https://github.com/nuxt-layers/iam-integration/blob/899befcf566775950c4b70b8cf0e7658be1000f9/docs/processes/approvals.md):
 
 - `submit` asks `approval.request` about the newest version, with its **digest** (SHA-256 of the canonical JSON of the document's id, type, version and content), the publish permission, its risk, the requester and the approvers needed beyond the requester (`APPROVAL_FLOOR`: none for `low` and `medium`, one for `high` and `critical`), as in Configuration.
 - `publish` asks `approval.decision` and publishes only when the answer is `approved`, bound to the same digest as the version being published, with enough approvers other than the requester and the publisher. Otherwise `conflict`, `approval-missing`; publishing before submitting is `review-required`.
@@ -120,7 +120,7 @@ Every save, restore and import is a new version, kept with who saved it, when, a
 
 ## 6. Rich text
 
-Formatted fields use the platform's one format, [`@nuxt4-layers/rich-text`](https://github.com/nuxt4-layers/rich-text/blob/e0b07a2f0754ac0b96f3c11a42346f63690c8887/README.md) (ADR-0011), pinned at `v2.0.0`. Every other string is plain and never read as rich text.
+Formatted fields use the platform's one format, [`@nuxt-layers/rich-text`](https://github.com/nuxt-layers/rich-text/blob/e0b07a2f0754ac0b96f3c11a42346f63690c8887/README.md) (ADR-0011), pinned at `v2.0.0`. Every other string is plain and never read as rich text.
 
 ### 6.1 Profiles
 

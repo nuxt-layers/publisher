@@ -40,7 +40,7 @@ The layer was specified and tested before it was built, phase by phase on one pu
 
 ## Headless migration, step 1: adopt `rich-text` (done)
 
-- `@nuxt4-layers/rich-text` pinned at `v1.0.0`; the publisher's own dialect, `markdownSchema()` and `markdownFields` removed.
+- `@nuxt-layers/rich-text` pinned at `v1.0.0`; the publisher's own dialect, `markdownSchema()` and `markdownFields` removed.
 - Formatted fields are found from each type's schema and checked against their profiles on every save, submission and import.
 - Green: `tests/rich-text.test.ts`, `tests/contracts.test.ts` "registration", and the browser tests. Next: [step 2](headless-migration.md).
 

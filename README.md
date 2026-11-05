@@ -1,4 +1,4 @@
-# @nuxt4-layers/publisher
+# @nuxt-layers/publisher
 
 Nuxt 4 foundation layer for publishing: which version of which document is published at which address, for whom, now. It owns the lifecycle every published document shares (drafts, versions and history; review, approval and moderation; scheduled publishing and unpublishing; addresses, redirects and links between documents; safe rich text; listings and feeds) and knows nothing about what any document is. Every document type is the host's registration.
 
@@ -43,10 +43,10 @@ A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Au
 
 ## Governing decisions and specifications
 
-- [ADR-0002 — Composition-Supplied Persistence and Capability-Owned Schemas](https://github.com/nuxt4-layers/platform-architecture/blob/93f3d6fb144b72d61cfb172b6a50eb6c5af9f489/docs/decisions/ADR-0002-composition-supplied-persistence-and-capability-owned-schemas.md)
-- [ADR-0004 — Documentation Placement](https://github.com/nuxt4-layers/platform-architecture/blob/93f3d6fb144b72d61cfb172b6a50eb6c5af9f489/docs/decisions/ADR-0004-documentation-placement.md)
-- [ADR-0006 — Polyglot Persistence and Data-Store Security](https://github.com/nuxt4-layers/platform-architecture/blob/93f3d6fb144b72d61cfb172b6a50eb6c5af9f489/docs/decisions/ADR-0006-polyglot-persistence-and-data-store-security.md)
-- [ADR-0009 — Headless Capability Layers](https://github.com/nuxt4-layers/platform-architecture/blob/725b2ffdc2f8101420bf301630f98fff01f68bc2/docs/decisions/ADR-0009-headless-capability-layers.md)
-- [ADR-0010 — Documentation Style](https://github.com/nuxt4-layers/platform-architecture/blob/725b2ffdc2f8101420bf301630f98fff01f68bc2/docs/decisions/ADR-0010-documentation-style.md)
-- [ADR-0011 — Shared Rich Text and Configurable Copy](https://github.com/nuxt4-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0011-shared-rich-text-and-configurable-copy.md)
-- [Approvals (two-person rule)](https://github.com/nuxt4-layers/iam-integration/blob/899befcf566775950c4b70b8cf0e7658be1000f9/docs/processes/approvals.md)
+- [ADR-0002 — Composition-Supplied Persistence and Capability-Owned Schemas](https://github.com/nuxt-layers/platform-architecture/blob/93f3d6fb144b72d61cfb172b6a50eb6c5af9f489/docs/decisions/ADR-0002-composition-supplied-persistence-and-capability-owned-schemas.md)
+- [ADR-0004 — Documentation Placement](https://github.com/nuxt-layers/platform-architecture/blob/93f3d6fb144b72d61cfb172b6a50eb6c5af9f489/docs/decisions/ADR-0004-documentation-placement.md)
+- [ADR-0006 — Polyglot Persistence and Data-Store Security](https://github.com/nuxt-layers/platform-architecture/blob/93f3d6fb144b72d61cfb172b6a50eb6c5af9f489/docs/decisions/ADR-0006-polyglot-persistence-and-data-store-security.md)
+- [ADR-0009 — Headless Capability Layers](https://github.com/nuxt-layers/platform-architecture/blob/725b2ffdc2f8101420bf301630f98fff01f68bc2/docs/decisions/ADR-0009-headless-capability-layers.md)
+- [ADR-0010 — Documentation Style](https://github.com/nuxt-layers/platform-architecture/blob/725b2ffdc2f8101420bf301630f98fff01f68bc2/docs/decisions/ADR-0010-documentation-style.md)
+- [ADR-0011 — Shared Rich Text and Configurable Copy](https://github.com/nuxt-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0011-shared-rich-text-and-configurable-copy.md)
+- [Approvals (two-person rule)](https://github.com/nuxt-layers/iam-integration/blob/899befcf566775950c4b70b8cf0e7658be1000f9/docs/processes/approvals.md)

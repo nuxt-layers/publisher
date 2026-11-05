@@ -1,4 +1,4 @@
-import { richTextFields, type RichTextFieldPath } from '@nuxt4-layers/rich-text'
+import { richTextFields, type RichTextFieldPath } from '@nuxt-layers/rich-text'
 import { z } from 'zod'
 import { safeTextSchema, sitePathSchema } from './values'
 

@@ -2,7 +2,7 @@
 
 > **In short:** register your document types, fill the publisher's ports from the IAM members and your host, then call its services. The publisher stores, versions, approves, publishes and serves documents. How they look is up to you.
 
-The publisher is headless ([ADR-0009](https://github.com/nuxt4-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0009-headless-capability-layers.md), [ADR-0011](https://github.com/nuxt4-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0011-shared-rich-text-and-configurable-copy.md)). The [contract](contracts.md) is the full reference.
+The publisher is headless ([ADR-0009](https://github.com/nuxt-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0009-headless-capability-layers.md), [ADR-0011](https://github.com/nuxt-layers/platform-architecture/blob/667e5310a66c56327f0ef80d43ce01b573ce6d86/docs/decisions/ADR-0011-shared-rich-text-and-configurable-copy.md)). The [contract](contracts.md) is the full reference.
 
 ## What it gives you
 
@@ -39,7 +39,7 @@ People's names are not the publisher's: documents hold identity ids, and your sc
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  extends: ['@nuxt4-layers/publisher'],
+  extends: ['@nuxt-layers/publisher'],
 })
 ```
 
@@ -82,8 +82,8 @@ A type is data, not code in the layer. Copy from [`./examples`](../examples/inde
 
 ```ts
 import { z } from 'zod'
-import { definePublisherDocumentType } from '@nuxt4-layers/publisher/contracts'
-import { richTextSchema } from '@nuxt4-layers/rich-text'
+import { definePublisherDocumentType } from '@nuxt-layers/publisher/contracts'
+import { richTextSchema } from '@nuxt-layers/rich-text'
 
 export const postsType = definePublisherDocumentType({
   type: 'post',

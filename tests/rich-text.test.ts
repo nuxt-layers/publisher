@@ -1,4 +1,4 @@
-import { richTextTreeSchema } from '@nuxt4-layers/rich-text'
+import { richTextTreeSchema } from '@nuxt-layers/rich-text'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { PublisherSubject } from '../shared/contracts'
 import { clearPublisherComposition } from '../server/utils/publisher-composition'

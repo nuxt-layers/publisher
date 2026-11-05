@@ -5,9 +5,9 @@ import re
 import sys
 
 root = Path(__file__).resolve().parents[1]
-# ADR-0004: links to nuxt4-layers documents must be pinned to a tag or commit.
+# ADR-0004: links to nuxt-layers documents must be pinned to a tag or commit.
 moving_ref = re.compile(
-    r"^https?://github\.com/nuxt4-layers/[^/]+/(?:blob|tree|raw)/(?:master|main|HEAD|develop)(?:/|$)",
+    r"^https?://github\.com/nuxt-layers/[^/]+/(?:blob|tree|raw)/(?:master|main|HEAD|develop)(?:/|$)",
     re.IGNORECASE,
 )
 errors = []

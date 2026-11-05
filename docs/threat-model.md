@@ -1,6 +1,6 @@
 # Threat Model
 
-The publisher decides what a site says in public, so its first duty is that nothing is public unless it was meant to be: no draft, no unapproved version, no unmoderated submission, and no markup an editor or a submitter smuggled in. This register follows the [Data Store Security Standard v0.1](https://github.com/nuxt4-layers/platform-architecture/blob/1a6d9da53c4957ff16ae7a28269c49a39d23cff2/docs/standards/data-store-security-v01.md) and ADR-0006. Status is the state of the implementation; the evidence is the test that proves each control.
+The publisher decides what a site says in public, so its first duty is that nothing is public unless it was meant to be: no draft, no unapproved version, no unmoderated submission, and no markup an editor or a submitter smuggled in. This register follows the [Data Store Security Standard v0.1](https://github.com/nuxt-layers/platform-architecture/blob/1a6d9da53c4957ff16ae7a28269c49a39d23cff2/docs/standards/data-store-security-v01.md) and ADR-0006. Status is the state of the implementation; the evidence is the test that proves each control.
 
 ## 1. Assets
 
