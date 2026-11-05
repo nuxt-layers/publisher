@@ -42,7 +42,7 @@ const layerFiles = [...files('app'), ...files('server'), ...files('shared'), 'nu
 
 /**
  * Contract version 1 (docs/contracts.md §17). Removing or narrowing any of
- * these after 1.0.0 needs contract version 2.
+ * these is a breaking change: stated in the changelog, with the contract version raised.
  */
 const VERSION_1_EXPORTS = [
   'APPROVAL_FLOOR', 'ASSET_ID_PATTERN', 'CRITICAL_FRESHNESS_MINUTES', 'FIELD_NAME_PATTERN',
