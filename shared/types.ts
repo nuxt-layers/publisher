@@ -9,7 +9,7 @@ import { safeTextSchema, sitePathSchema } from './values'
  */
 
 /** What a permission lets its holder do to documents of one type (§10). */
-export const PUBLISHER_PERMISSION_ACTIONS = ['view-draft', 'edit', 'publish', 'moderate'] as const
+export const PUBLISHER_PERMISSION_ACTIONS = ['view-draft', 'edit', 'publish'] as const
 export type PublisherPermissionAction = typeof PUBLISHER_PERMISSION_ACTIONS[number]
 
 /** A type's key: lower-case ASCII with `-`, as a segment of Configuration's keys. */
@@ -62,11 +62,9 @@ export const publisherTypeDeclarationSchema = z.strictObject({
   lifecycle: z.strictObject({
     /** Publishing needs the approval port's consent (§5.2). */
     approval: z.boolean().default(false),
-    /** Submissions wait, hidden, for a moderator (§5.3). Not with `approval`. */
-    moderation: z.boolean().default(false),
     /** `publishAt` and `unpublishAt` may be set. */
     scheduling: z.boolean().default(false),
-  }).default({ approval: false, moderation: false, scheduling: false }),
+  }).default({ approval: false, scheduling: false }),
   personalData: z.strictObject({
     /** The field holding the person's opaque identity identifier. */
     subjectField: z.string().regex(FIELD_NAME_PATTERN),
@@ -112,7 +110,7 @@ export function definePublisherDocumentType<const Declaration extends PublisherT
  * meta-schema, a type registered twice, a `fields` schema that is not a
  * strict object, holds an unbounded string or array or too many
  * formatted fields, a filterable, subject or consent field the schema
- * does not have (or of the wrong shape), and `approval` with `moderation`.
+ * does not have (or of the wrong shape).
  */
 export function buildPublisherRegistry(declarations: readonly PublisherTypeDeclarationInput[]): PublisherRegistry {
   const registry = new Map<string, PublisherTypeDeclaration>()
@@ -140,7 +138,6 @@ export function buildPublisherRegistry(declarations: readonly PublisherTypeDecla
       const node = topField(jsonSchema, field)
       if (!node || !(isFilterable(node) || (isType(node, 'array') && isFilterable(deref(jsonSchema, node.items as JsonNode | undefined))))) fail(`names filterable field '${field}', which is not a string, enumeration or array of either`)
     }
-    if (declaration.lifecycle.approval && declaration.lifecycle.moderation) fail('declares both approval and moderation')
     if (declaration.personalData) {
       const subject = topField(jsonSchema, declaration.personalData.subjectField)
       if (!subject || !isType(subject, 'string')) fail(`names subject field '${declaration.personalData.subjectField}', which is not a string field`)

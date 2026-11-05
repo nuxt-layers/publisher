@@ -1,13 +1,13 @@
 # Threat Model
 
-> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 4 to 8 change it: security decisions and moderation leave, delete arrives, and composition becomes one call. Each step updates this document.
+> **Note:** this describes the code as it is today. [PLAN.md](../PLAN.md) steps 6 to 8 change it: delete and reading addresses arrive, and composition becomes one call. Each step updates this document.
 
 The publisher decides what a site says in public (a **site** is one publishing space, belonging to one owner within a **tenant**: see the README's Terms), so its first duty is that nothing is public unless it was meant to be: no draft, no unapproved version, no unmoderated submission, and no markup an editor or a submitter smuggled in. This register follows Security §16, data stores, and ADR-0006 (both in [Resources](../RESOURCES.md)). Status is the state of the implementation; the evidence is the test that proves each control.
 
 ## 1. Assets
 
 - Published content, and the integrity of what is published at each address.
-- Drafts, unpublished versions and pending submissions, which are not public.
+- Drafts and unpublished versions, which are not public.
 - Personal data in the documents of types that declare it: a person's words, rating or identity, and their consent.
 - The registered types, which decide what may be stored.
 - The outbox, history and redirects.
@@ -20,7 +20,6 @@ The publisher decides what a site says in public (a **site** is one publishing s
 | Host → publisher at start-up | The type declarations and ports the host supplies, checked before use | — |
 | Publisher → access and approval ports | Their answers, parsed; a failure refuses the action | — |
 | Publisher → asset port | Each asset's address, parsed as an `https` URL or site path | — |
-| Host's forms → `receivePublisherSubmission` | That the host decided the submitter may submit | The submission's content |
 | Host → database | The publisher's schema, through a runtime role that owns nothing | Other capabilities' schemas (never read) |
 
 ## 3. Control register
@@ -34,7 +33,6 @@ The publisher decides what a site says in public (a **site** is one publishing s
 | T5 | A type declared with a lax schema | The meta-schema and `buildPublisherRegistry` refuse at start-up: strict objects, bounded strings and arrays | `tests/contracts.test.ts` "registration"; `tests/composition.test.ts` | Implemented |
 | T6 | Stored script, event handlers or `javascript:`/`data:` links run in readers' browsers (XSS) | Rich text parsed to `rich-text`'s safe tree for its field's profile ; anything beyond a field's profile refused on save; raw HTML is text; only `https:`, `mailto:`, `doc:`, `asset:` and site paths kept; readers receive safe trees only, never HTML; the layer draws nothing | `tests/rich-text.test.ts` "answers formatted fields as safe trees"; `tests/headless.test.ts`; rich-text's own tests | Implemented |
 | T7 | Images hot-linked from elsewhere, or without alternative text | Images only from `asset:` through the host's asset port; no alt text refused on save | rich-text's own tests; `tests/http.test.ts` "image-without-alt" | Implemented |
-| T8 | An unmoderated submission appears in public | Submissions are `in-review` with `moderation: pending`; only `moderate` releases them; `publish` cannot | lifecycle "moderation" | Implemented |
 | T9 | A person's words published without consent, or kept after erasure | Consent field required to publish; erasure deletes every version, link, redirect and approval; superseded versions deleted after retention; readers never get the user or consent field | `tests/personal-data.test.ts` | Implemented |
 | T10 | A lost update overwrites another editor's work | Every action carries `expectedVersion`; anything else is `version-stale` | lifecycle "versions" | Implemented |
 | T11 | A broken or hijacked address after a rename; an open redirect | Redirects recorded automatically, pointing at a document id, never at a URL; only site paths are ever redirect targets | `tests/addresses.test.ts` | Implemented |

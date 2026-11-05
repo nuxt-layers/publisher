@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PUBLISHER_MODERATION_STATES, PUBLISHER_STATUSES, publisherContentSchema } from './documents'
+import { PUBLISHER_STATUSES, publisherContentSchema } from './documents'
 import { identifierSchema, instantSchema } from './identifiers'
 import { typeKeySchema } from './types'
 import { siteIdSchema, sitePathSchema } from './values'
@@ -18,7 +18,6 @@ export const publisherBundleDocumentSchema = z.strictObject({
   status: z.enum(PUBLISHER_STATUSES),
   publishedVersion: z.number().int().min(1).nullable(),
   reviewVersion: z.number().int().min(1).nullable(),
-  moderation: z.enum(PUBLISHER_MODERATION_STATES).nullable(),
   publishAt: instantSchema.nullable(),
   unpublishAt: instantSchema.nullable(),
   createdAt: instantSchema,

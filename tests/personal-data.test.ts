@@ -9,7 +9,6 @@ import {
   listPublishedDocuments,
   listPublisherBacklinks,
   listPublisherHistory,
-  receivePublisherSubmission,
   runPublisherMaintenance,
   transitionPublisherDocument,
 } from '../server/utils/publisher-server'
@@ -32,8 +31,8 @@ describe.skipIf(!hasDatabase)('personal data (PostgreSQL)', () => {
     transitionPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), documentId, request })
 
   async function accepted(authorId: string, words = 'Splendid.'): Promise<string> {
-    const { documentId } = await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: authorId, type: 'appraisal', content: appraisal(authorId, { words }) })
-    await act(documentId, { action: 'moderate', expectedVersion: 1, outcome: 'accept' })
+    const { id: documentId } = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'appraisal', content: appraisal(authorId, { words }) })
+    await act(documentId, { action: 'publish', expectedVersion: 1 })
     return documentId
   }
 
@@ -54,8 +53,8 @@ describe.skipIf(!hasDatabase)('personal data (PostgreSQL)', () => {
   it('refuses publishing a personal-data type without recorded consent, by any route', async () => {
     const draft = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'appraisal', content: appraisal(carol, { consent: false }) })
     await expect(act(draft.id, { action: 'publish', expectedVersion: 1 })).rejects.toMatchObject({ code: 'conflict', reason: 'consent-missing' })
-    const { documentId } = await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: carol, type: 'appraisal', content: appraisal(carol, { consent: false }) })
-    await expect(act(documentId, { action: 'moderate', expectedVersion: 1, outcome: 'accept' })).rejects.toMatchObject({ code: 'conflict', reason: 'consent-missing' })
+    const { id: documentId } = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'appraisal', content: appraisal(carol, { consent: false }) })
+    await expect(act(documentId, { action: 'publish', expectedVersion: 1 })).rejects.toMatchObject({ code: 'conflict', reason: 'consent-missing' })
     // Consent recorded, then withdrawn in a later version: the later version cannot be published.
     const withConsent = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'appraisal', content: appraisal(carol) })
     await act(withConsent.id, { action: 'publish', expectedVersion: 1 })
@@ -73,7 +72,7 @@ describe.skipIf(!hasDatabase)('personal data (PostgreSQL)', () => {
   it('exports exactly that person\'s documents, with every version', async () => {
     const mine = await accepted(carol, 'First.')
     await act(mine, { action: 'save', expectedVersion: 1, content: appraisal(carol, { words: 'Edited.' }) })
-    const pending = (await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: carol, type: 'appraisal', content: appraisal(carol, { words: 'Pending.' }) })).documentId
+    const pending = (await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'appraisal', content: appraisal(carol, { words: 'Pending.' }) })).id
     await accepted(dave, 'Not hers.')
     // A document of another type that merely names her is not personal data of hers.
     await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'bulletin', content: { ...bulletin('mentions'), fields: { body: carol, topic: 'general' } } })

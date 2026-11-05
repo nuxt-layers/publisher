@@ -13,9 +13,7 @@ import {
   listPublishedDocuments,
   listPublisherBacklinks,
   listPublisherDocuments,
-  listPublisherModerationQueue,
   listPublisherSitemapEntries,
-  receivePublisherSubmission,
   resolvePublisherPath,
   transitionPublisherDocument,
 } from '../server/utils/publisher-server'
@@ -114,12 +112,6 @@ describe.skipIf(!hasDatabase)('sites (PostgreSQL)', () => {
     expect(await resolvePublisherPath({ siteId: BRAVO, path: '/bulletins/2026/10/21/old' })).toEqual({ kind: 'none' })
   })
 
-  it('moderates each site\'s submissions there only', async () => {
-    await receivePublisherSubmission({ siteId: BRAVO, correlationId: id(), submitterId: bob, type: 'appraisal', content: appraisal(bob) })
-    expect((await listPublisherModerationQueue({ siteId: ALPHA, subject: editor })).total).toBe(0)
-    expect((await listPublisherModerationQueue({ siteId: BRAVO, subject: editor })).total).toBe(1)
-  })
-
   it('exports a site\'s content, and imports it into another site', async () => {
     await publish(ALPHA, 'moving', 'Moving')
     const bundle = await exportPublisherContent({ siteId: ALPHA })
@@ -134,8 +126,8 @@ describe.skipIf(!hasDatabase)('sites (PostgreSQL)', () => {
 
   it('exports and erases a person\'s documents on every site, naming each one\'s site', async () => {
     for (const siteId of [ALPHA, BRAVO]) {
-      const { documentId } = await receivePublisherSubmission({ siteId, correlationId: id(), submitterId: bob, type: 'appraisal', content: appraisal(bob) })
-      await transitionPublisherDocument({ siteId, subject: editor, correlationId: id(), documentId, request: { action: 'moderate', expectedVersion: 1, outcome: 'accept' } })
+      const { id: documentId } = await createPublisherDocument({ siteId, subject: editor, correlationId: id(), type: 'appraisal', content: appraisal(bob) })
+      await transitionPublisherDocument({ siteId, subject: editor, correlationId: id(), documentId, request: { action: 'publish', expectedVersion: 1 } })
     }
     const exported = publisherPersonExportSchema.parse(await exportPublisherPersonData({ identityId: bob }))
     expect(exported.documents.map(document => document.siteId).sort()).toEqual([ALPHA, BRAVO])

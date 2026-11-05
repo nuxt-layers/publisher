@@ -15,7 +15,7 @@ import { PUBLISHER_ERROR_CODES } from '../../shared/contracts'
 /** A registered type as `/api/publisher/admin/types` answers it, for the host's own screens and editor. */
 export interface PublisherTypeView extends PublisherEditorType {
   listing: { listable: boolean, order: string, filterable: string[] }
-  lifecycle: { approval: boolean, moderation: boolean, scheduling: boolean }
+  lifecycle: { approval: boolean, scheduling: boolean }
   personalData: boolean
   may: Record<PublisherPermissionAction, boolean>
 }
@@ -52,7 +52,6 @@ export function usePublisher() {
     document: (documentId: string, version?: number) => request<PublisherDocument>(`${admin}/${documentId}`, { query: version ? { version } : undefined }),
     history: (documentId: string) => request<PublisherVersion[]>(`${admin}/${documentId}/history`),
     backlinks: (documentId: string) => request<PublisherBacklink[]>(`${admin}/${documentId}/backlinks`),
-    moderation: () => request<PublisherListing>(`${base}/admin/moderation`),
     create: (type: string, content: PublisherContentInput) => $fetch<PublisherDocument>(admin, { method: 'POST', body: { type, content } }),
     act: (documentId: string, action: PublisherActionRequestInput) => $fetch<PublisherDocument>(`${admin}/${documentId}/actions`, { method: 'POST', body: action }),
   }

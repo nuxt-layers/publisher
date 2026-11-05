@@ -51,7 +51,6 @@ export interface DocumentRow {
   review_version: number | null
   approval_id: string | null
   review_requester: string | null
-  moderation: PublisherDocument['moderation']
   publish_at: Date | null
   unpublish_at: Date | null
   created_at: Date
@@ -289,7 +288,6 @@ export function toDocument(row: DocumentRow, version: VersionRow, options: { for
     latestVersion: row.latest_version,
     publishedVersion: row.published_version,
     reviewVersion: row.review_version,
-    moderation: row.moderation,
     publishAt: iso(row.publish_at),
     unpublishAt: iso(row.unpublish_at),
     createdAt: iso(row.created_at),

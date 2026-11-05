@@ -47,7 +47,7 @@ const layerFiles = [...files('app'), ...files('server'), ...files('shared'), 'nu
 const CONTRACT_EXPORTS = [
   'ASSET_ID_PATTERN', 'FIELD_NAME_PATTERN',
   'PUBLISHER_ACTIONS', 'PUBLISHER_BUNDLE_FORMAT', 'PUBLISHER_CONFLICT_REASONS', 'PUBLISHER_CONTENT_PROBLEMS', 'PUBLISHER_CONTRACT_VERSION',
-  'PUBLISHER_ERROR_CODES', 'PUBLISHER_ERROR_STATUS', 'PUBLISHER_FEED_FORMATS', 'PUBLISHER_MAX_RICH_TEXT_FIELDS', 'PUBLISHER_MODERATION_STATES',
+  'PUBLISHER_ERROR_CODES', 'PUBLISHER_ERROR_STATUS', 'PUBLISHER_FEED_FORMATS', 'PUBLISHER_MAX_RICH_TEXT_FIELDS', 
   'PUBLISHER_ORDERS', 'PUBLISHER_PERMISSION_ACTIONS', 'PUBLISHER_RETENTION', 
   'PUBLISHER_SCHEDULED_TRANSITIONS', 'PUBLISHER_STATUSES', 'PUBLISHER_TRANSITIONS', 'PublisherCompositionError', 'PublisherFailure', 'REASON_CODE_PATTERN',
   'SITE_ID_PATTERN', 'SLUG_PATTERN', 'TYPE_KEY_PATTERN', 'UUID_PATTERN', 'UUID_V7_PATTERN', 'addressDateSchema',
@@ -120,13 +120,13 @@ describe('the public contract', () => {
         for (const status of to!) expect(contracts.PUBLISHER_STATUSES).toContain(status)
       }
     }
-    // Nothing leaves `archived` but reopening, and nothing reaches `published` without `publish` or `moderate`.
+    // Nothing leaves `archived` but reopening, and nothing reaches `published` without `publish`.
     const fromArchived = contracts.PUBLISHER_ACTIONS.filter(action => 'archived' in contracts.PUBLISHER_TRANSITIONS[action].from)
     expect(fromArchived).toEqual(['reopen'])
     for (const action of contracts.PUBLISHER_ACTIONS) {
       const { permission, from } = contracts.PUBLISHER_TRANSITIONS[action]
       const reachesPublished = Object.entries(from).some(([status, to]) => status !== 'published' && to!.includes('published'))
-      if (reachesPublished) expect(['publish', 'moderate']).toContain(permission)
+      if (reachesPublished) expect(permission).toBe('publish')
     }
   })
 
@@ -166,14 +166,14 @@ describe('registration', () => {
     expect(contracts.buildPublisherRegistry(EXAMPLE_DOCUMENT_TYPES).size).toBe(EXAMPLE_DOCUMENT_TYPES.length)
   })
 
-  it('derives four permissions per type; Authorisation\'s catalogue sets their risk', () => {
+  it('derives three permissions per type; Authorisation\'s catalogue sets their risk', () => {
     expect(contracts.publisherPermission('landing', 'view-draft')).toBe('publisher.landing.view-draft')
     expect(contracts.publisherPermissions(registry())).toEqual(expect.arrayContaining([
       { permission: 'publisher.landing.publish', type: 'landing', action: 'publish' },
-      { permission: 'publisher.appraisal.moderate', type: 'appraisal', action: 'moderate' },
+      { permission: 'publisher.appraisal.view-draft', type: 'appraisal', action: 'view-draft' },
       { permission: 'publisher.bulletin.edit', type: 'bulletin', action: 'edit' },
     ]))
-    expect(contracts.publisherPermissions(registry())).toHaveLength(12)
+    expect(contracts.publisherPermissions(registry())).toHaveLength(9)
   })
 
   it('fails closed on a duplicate type', () => {
@@ -200,8 +200,8 @@ describe('registration', () => {
       { ...appraisalType, personalData: { subjectField: 'nobody', consentField: 'consent', retentionDays: 90 } },
       { ...appraisalType, personalData: { subjectField: 'authorId', consentField: 'stars', retentionDays: 90 } },
       { ...appraisalType, personalData: { subjectField: 'authorId', consentField: 'consent', retentionDays: 10 } },
-      // Moderation is the review of submissions; a type has one or the other.
-      { ...appraisalType, lifecycle: { approval: true, moderation: true, scheduling: false } },
+      // Moderation is not Publisher's: a lifecycle declares only approval and scheduling.
+      { ...appraisalType, lifecycle: { approval: false, moderation: true, scheduling: false } },
     ]
     for (const declaration of invalid) {
       expect(() => contracts.buildPublisherRegistry([declaration as contracts.PublisherTypeDeclarationInput]), JSON.stringify(declaration)).toThrow()

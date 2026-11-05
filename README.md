@@ -1,6 +1,6 @@
 # @nuxt-layers/publisher
 
-Nuxt foundation layer for publishing: which version of which document is published at which address, for whom, now. It owns the lifecycle every published document shares (drafts, versions and history; review, approval and moderation; scheduled publishing and unpublishing; addresses, redirects and links between documents; safe rich text; listings and feeds) and knows nothing about what any document is. Every document type is the host's registration.
+Nuxt foundation layer for publishing: which version of which document is published at which address, for whom, now. It owns the lifecycle every published document shares (drafts, versions and history; review and approval; scheduled publishing and unpublishing; addresses, redirects and links between documents; safe rich text; listings and feeds) and knows nothing about what any document is. Every document type is the host's registration.
 
 A headless platform foundation layer (ADR-0009): it draws nothing. It reaches Authorisation, the approvals process, the asset store and the title template only through ports the host supplies, and imports no other layer, only the stateless `rich-text` library.
 

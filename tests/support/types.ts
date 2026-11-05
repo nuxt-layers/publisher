@@ -27,10 +27,10 @@ export const landingType = definePublisherDocumentType({
   }),
   address: { kind: 'path', base: '', pattern: 'slug' },
   listing: { listable: true, order: 'title-asc', filterable: ['section'] },
-  lifecycle: { approval: true, moderation: false, scheduling: true },
+  lifecycle: { approval: true, scheduling: true },
 })
 
-/** Review-like: a person's rating and words, moderated, consent recorded, no address of its own. */
+/** Review-like: a person's rating and words, consent recorded, no address of its own. */
 export const appraisalType = definePublisherDocumentType({
   type: 'appraisal',
   label: { one: 'Appraisal', many: 'Appraisals' },
@@ -42,7 +42,7 @@ export const appraisalType = definePublisherDocumentType({
   }),
   address: { kind: 'none' },
   listing: { listable: true, order: 'published-desc', filterable: [] },
-  lifecycle: { approval: false, moderation: true, scheduling: false },
+  lifecycle: { approval: false, scheduling: false },
   personalData: { subjectField: 'authorId', consentField: 'consent', retentionDays: 90 },
 })
 
@@ -56,7 +56,7 @@ export const bulletinType = definePublisherDocumentType({
   }),
   address: { kind: 'path', base: '/bulletins', pattern: 'date-slug' },
   listing: { listable: true, order: 'published-desc', filterable: ['topic'] },
-  lifecycle: { approval: false, moderation: false, scheduling: true },
+  lifecycle: { approval: false, scheduling: true },
 })
 
 export const TEST_TYPES = [landingType, appraisalType, bulletinType] as const

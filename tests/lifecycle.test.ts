@@ -12,8 +12,6 @@ import {
   getPublisherFeed,
   listPublishedDocuments,
   listPublisherHistory,
-  listPublisherModerationQueue,
-  receivePublisherSubmission,
   resolvePublisherPath,
   runPublisherMaintenance,
   transitionPublisherDocument,
@@ -80,10 +78,10 @@ describe.skipIf(!hasDatabase)('the lifecycle (PostgreSQL)', () => {
       page = await act(editor, page, { action: 'publish', expectedVersion: 2 })
       expect(page).toMatchObject({ status: 'published', publishedVersion: 2, path: '/about' })
 
-      // A review-like type: a person's rating, moderated, consent recorded.
-      const { documentId } = await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: carol, type: 'appraisal', content: appraisal(carol) })
-      let rating = await act(editor, documentId, { action: 'moderate', expectedVersion: 1, outcome: 'accept' })
-      expect(rating).toMatchObject({ status: 'published', moderation: 'accepted', path: null })
+      // A review-like type: a person's rating, taken in as a draft and published, consent recorded.
+      const { id: documentId } = await createPublisherDocument({ siteId: SITE, subject: editor, correlationId: id(), type: 'appraisal', content: appraisal(carol) })
+      let rating = await act(editor, documentId, { action: 'publish', expectedVersion: 1 })
+      expect(rating).toMatchObject({ status: 'published', path: null })
       rating = await act(editor, rating, { action: 'save', expectedVersion: 1, content: appraisal(carol, { stars: 4 }) })
       expect((await listPublisherHistory({ siteId: SITE, subject: editor, documentId })).map(version => version.version)).toEqual([2, 1])
 
@@ -175,12 +173,6 @@ describe.skipIf(!hasDatabase)('the lifecycle (PostgreSQL)', () => {
       expect(PUBLISHER_ACTIONS.every(action => PUBLISHER_TRANSITIONS[action].permission)).toBe(true)
     })
 
-    it('refuses moderation without `moderate`, even to whoever may publish', async () => {
-      const { documentId } = await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: null, type: 'appraisal', content: appraisal(carol) })
-      world.revoke(alice, 'publisher.appraisal.moderate')
-      await expect(act(editor, documentId, { action: 'moderate', expectedVersion: 1, outcome: 'accept' })).rejects.toMatchObject({ code: 'forbidden' })
-    })
-
     it('passes the user, the action and the resource to Authorisation, and relays a step-up as `insufficient-assurance`', async () => {
       let document = await create(editor, 'landing', landing('secure'))
       document = await act(editor, document, { action: 'submit', expectedVersion: 1 })
@@ -231,34 +223,6 @@ describe.skipIf(!hasDatabase)('the lifecycle (PostgreSQL)', () => {
       await expect(act(editor, document, { action: 'submit', expectedVersion: 1 })).rejects.toMatchObject({ code: 'conflict', reason: 'invalid-transition' })
       await expect(act(editor, document, { action: 'publish', expectedVersion: 1 })).resolves.toMatchObject({ status: 'published' })
       expect(world.approvals.size).toBe(0)
-    })
-  })
-
-  describe('moderation', () => {
-    it('keeps submissions hidden until a moderator accepts them, and hidden for good when rejected', async () => {
-      const accepted = await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: carol, type: 'appraisal', content: appraisal(carol) })
-      const rejected = await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: null, type: 'appraisal', content: appraisal(id(), { words: 'Spam' }) })
-      for (const { documentId } of [accepted, rejected]) {
-        expect(await getPublishedDocument({ siteId: SITE, documentId })).toBeNull()
-        expect(await getPublisherDocument({ siteId: SITE, subject: editor, documentId })).toMatchObject({ status: 'in-review', moderation: 'pending' })
-      }
-      expect((await listPublishedDocuments({ siteId: SITE, type: 'appraisal' })).total).toBe(0)
-      expect((await listPublisherModerationQueue({ siteId: SITE, subject: editor })).documents.map(document => document.id).sort()).toEqual([accepted.documentId, rejected.documentId].sort())
-      // A moderated submission is not published by `publish`: it waits for a moderator.
-      await expect(act(editor, accepted.documentId, { action: 'publish', expectedVersion: 1 })).rejects.toMatchObject({ code: 'conflict', reason: 'not-moderated' })
-
-      await act(editor, accepted.documentId, { action: 'moderate', expectedVersion: 1, outcome: 'accept' })
-      await act(editor, rejected.documentId, { action: 'moderate', expectedVersion: 1, outcome: 'reject' })
-      expect((await listPublishedDocuments({ siteId: SITE, type: 'appraisal' })).documents.map(document => document.id)).toEqual([accepted.documentId])
-      expect(await getPublisherDocument({ siteId: SITE, subject: editor, documentId: rejected.documentId })).toMatchObject({ status: 'archived', moderation: 'rejected' })
-      expect((await listPublisherModerationQueue({ siteId: SITE, subject: editor })).total).toBe(0)
-      // Only moderated types take submissions.
-      await expect(receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: carol, type: 'bulletin', content: bulletin('x') })).rejects.toMatchObject({ code: 'validation-failed' })
-    })
-
-    it('lists the queue only to moderators', async () => {
-      await receivePublisherSubmission({ siteId: SITE, correlationId: id(), submitterId: carol, type: 'appraisal', content: appraisal(carol) })
-      expect((await listPublisherModerationQueue({ siteId: SITE, subject: reader })).total).toBe(0)
     })
   })
 
