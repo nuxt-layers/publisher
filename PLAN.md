@@ -14,13 +14,39 @@
 | 1 | Move to the `nuxt-layers` organisation; export bundle format `nuxt-layers.publisher` | Done |
 | 2 | Documents (ADR-0010): `RESOURCES.md`, this plan, `STORAGE-REGISTER.md`, `capability.json`; external links only in Resources | Done |
 | 3 | Toolchain (ADR-0013): Node 26.13.0, Corepack 0.36.0 and pnpm 12.16.1; `allowBuilds`; CI actions pinned by commit, pnpm through Corepack, the store cached | Done |
-| 3a | [Design review](docs/design-review.md): move security decisions to Authorisation, Authentication and the approvals process | In review |
-| 4 | Composition (ADR-0012): one call taking the pool, `resolveCaller`, `decide`, `tasks`, `now()`, the approval port and the host's types, running migrations itself; fakes of every port, refused outside tests; `examples/minimal-host` with a budget check and smoke test | After 3a |
-| 5 | `CONTRACT.md` rewritten to stand alone (ADR-0012 §6), with the asset port's exact shape and a clock answering a `Date` or an ISO 8601 UTC string | Next |
+| 3a | [Design review](docs/design-review.md) | Done |
+
+## Next: the change plan
+
+Each step is one pull request on its own branch, contract and failing tests first. Steps 4 to 7 change the public contract, so contract version 2 lands with step 4 and covers them all.
+
+| Step | Work | Removes | Adds |
+|---|---|---|---|
+| 4 | Security decisions out | Risk levels and floors, `lifecycle.risks`, step-up and freshness, `APPROVAL_FLOOR`, the subject's shape | `decide(caller, action, { siteId, type, documentId })` and an opaque caller; approval checks only the approved digest |
+| 5 | Moderation out | `receivePublisherSubmission`, `lifecycle.moderation`, the `moderate` action and permission, the queue, two events | Nothing: a service caller creates an ordinary draft |
+| 6 | Delete | | Delete of a document with every version, link and history; a `document-deleted` event; refused while the policy port reports a hold |
+| 7 | Composition (ADR-0012) | Every `providePublisher*` call and `migratePublisherDatabase` | One call, `composePublisher({ pool, resolveCaller, decide, types, ... })`, running migrations and returning `tasks`; fakes of every port, refused outside tests; `examples/minimal-host` with a budget check and smoke test |
+| 8 | Contract | `docs/design-review.md` | `CONTRACT.md` standing alone, ending with the services Publisher expects as requirements on their owners |
+
+## Assumptions to confirm
+
+Each is the default the steps above follow unless the owner says otherwise.
+
+| Question | Assumed |
+|---|---|
+| Addresses (each document's path on its site) | Stay: Publisher needs them to serve a document |
+| Redirects and sitemap entries | Stay in Publisher until `seo` exists, then move. Events carry identifiers only, so `seo` will read addresses through a function, not from events |
+| Listings and RSS/Atom feeds | Stay: they read only published documents |
+| The HTTP API and `usePublisher()` | Stay, switchable off as today |
+| Tags and categories | Not stored by Publisher: a type may hold `metadata`'s identifiers as plain fields |
+| Autosave, diffs and history depth | Not in these steps: every save stays a full version; depth and storage limits arrive later from `privacy` and `policy-map` |
+| Retention | Keeps the type's `retentionDays`, which the host already supplies, until `privacy` exists |
+| Locking while editing | Not added: `expectedVersion` already refuses lost updates |
+| Export | No change: answers are data, and the `export` layer turns them into files |
 
 ## Decided for this work
 
-- The `v1.0.0` tag and release are withdrawn; consumers follow `master`. Versions are reset (package `0.0.0`, contract version 1) until a beta release.
+- The `v1.0.0` tag and release are withdrawn; consumers follow `master`. Versions are reset (package `0.0.0`) until a beta release; the contract version rises to 2 with step 4.
 - The `providePublisher*` calls go in the same change as the single call, with no transition.
 - Publisher declares its approval port in its own contract and knows nothing of where it comes from; the host fills it.
 - Migrations run inside the single call.
